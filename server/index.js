@@ -243,6 +243,8 @@ function isAllowedAssetUrl(rawUrl) {
     return (
       host.endsWith('.tripo3d.ai') ||
       host === 'tripo3d.ai' ||
+      host.endsWith('.tripo3d.com') ||
+      host === 'tripo3d.com' ||
       host.endsWith('.amazonaws.com') ||
       host === 's3.us-west-2.amazonaws.com' ||
       host.endsWith('.cloudfront.net')

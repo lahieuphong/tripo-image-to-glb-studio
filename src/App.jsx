@@ -19,6 +19,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [logs, setLogs] = useState([]);
   const activeTaskRef = useRef('');
+  const generatingRef = useRef(false);
 
   const [options, setOptions] = useState({
     modelVersion: 'v3.1-20260211',
@@ -50,8 +51,11 @@ export default function App() {
   const currentStatus = task?.status || (loading ? 'queued' : 'idle');
   const isCreditError = isCreditErrorMessage(error);
 
-  function refreshBalance() {
-    fetch('/api/balance').then((r) => r.json()).then(setBalance).catch(() => {});
+  function refreshBalance({ force = false } = {}) {
+    fetch('/api/balance')
+      .then((r) => r.json())
+      .then((data) => { if (force || !generatingRef.current) setBalance(data); })
+      .catch(() => {});
   }
 
   useEffect(() => {
@@ -107,6 +111,7 @@ export default function App() {
   async function generate() {
     if (!imageFile) { setError('Hãy chọn một ảnh trước.'); return; }
 
+    generatingRef.current = true;
     setLoading(true);
     setError('');
     setTask(null);
@@ -132,6 +137,7 @@ export default function App() {
       setError(err.message || 'Có lỗi xảy ra.');
       addLog(`Lỗi: ${err.message || err}`);
     } finally {
+      generatingRef.current = false;
       setLoading(false);
     }
   }
@@ -155,7 +161,7 @@ export default function App() {
       if (FINAL_STATUSES.has(parsed.status)) {
         if (parsed.status === 'success') {
           addLog('Hoàn tất. Bạn có thể preview và download GLB.');
-          refreshBalance();
+          refreshBalance({ force: true });
         } else {
           throw new Error(`Task kết thúc với trạng thái: ${parsed.status}`);
         }
