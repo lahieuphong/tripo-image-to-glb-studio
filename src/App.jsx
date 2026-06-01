@@ -70,6 +70,7 @@ function ApiBadge({ configured }) {
 
 export default function App() {
   const [health, setHealth] = useState(null);
+  const [balance, setBalance] = useState(null);
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -108,11 +109,16 @@ export default function App() {
     ? `/api/asset?download=1&filename=${encodeURIComponent('tripo-output.glb')}&url=${encodeURIComponent(modelUrl)}`
     : '';
 
+  function refreshBalance() {
+    fetch('/api/balance').then((r) => r.json()).then(setBalance).catch(() => {});
+  }
+
   useEffect(() => {
     fetch('/api/health')
       .then((res) => res.json())
       .then(setHealth)
       .catch(() => setHealth({ ok: false, apiKeyConfigured: false }));
+    refreshBalance();
   }, []);
 
   useEffect(() => {
@@ -123,7 +129,7 @@ export default function App() {
 
   function addLog(message) {
     setLogs((current) => [
-      { id: crypto.randomUUID(), time: new Date().toLocaleTimeString(), message },
+      { id: `${Date.now()}-${Math.random()}`, time: new Date().toLocaleTimeString(), message },
       ...current
     ].slice(0, 8));
   }
@@ -146,8 +152,8 @@ export default function App() {
       return;
     }
 
-    if (file.size > 20 * 1024 * 1024) {
-      setError('File quá lớn. Giới hạn upload là 20MB.');
+    if (file.size > 50 * 1024 * 1024) {
+      setError('File quá lớn. Giới hạn upload là 50MB.');
       return;
     }
 
@@ -214,6 +220,7 @@ export default function App() {
       if (FINAL_STATUSES.has(parsed.status)) {
         if (parsed.status === 'success') {
           addLog('Hoàn tất. Bạn có thể preview và download GLB.');
+          refreshBalance();
         } else {
           throw new Error(`Task kết thúc với trạng thái: ${parsed.status}`);
         }
@@ -267,7 +274,15 @@ export default function App() {
             <p className="eyebrow">Image → 3D Model</p>
             <h2>Tạo model GLB từ một ảnh</h2>
           </div>
-          <ApiBadge configured={health?.apiKeyConfigured} />
+          <div className="topbar-badges">
+            <ApiBadge configured={health?.apiKeyConfigured} />
+            {balance?.balance != null && (
+              <div className="api-badge balance-badge">
+                <span className="dot" />
+                {Number(balance.balance).toLocaleString()} credits còn lại
+              </div>
+            )}
+          </div>
         </header>
 
         <div className="grid">
@@ -277,7 +292,7 @@ export default function App() {
                 <p className="eyebrow">Input</p>
                 <h3>Upload ảnh</h3>
               </div>
-              <span className="pill">PNG/JPG/WEBP · ≤20MB</span>
+              <span className="pill">PNG/JPG/WEBP · ≤50MB</span>
             </div>
 
             <label
@@ -494,6 +509,15 @@ export default function App() {
               </div>
               {task?.running_left_time > 0 && (
                 <p className="hint">Ước tính còn {task.running_left_time}s</p>
+              )}
+              {normalized?.renderCredits != null && task?.status === 'success' && (
+                <div className="credit-line">
+                  <span>Lần này tốn</span>
+                  <strong>{normalized.renderCredits} credits</strong>
+                  {balance?.balance != null && (
+                    <span className="credit-remaining">· Còn lại {Number(balance.balance).toLocaleString()} credits</span>
+                  )}
+                </div>
               )}
             </div>
 

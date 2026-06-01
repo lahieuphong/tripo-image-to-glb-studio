@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
 const TRIPO_API_BASE = 'https://api.tripo3d.ai/v2/openapi';
-const MAX_UPLOAD_SIZE = 20 * 1024 * 1024;
+const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -225,7 +225,8 @@ function normalizeOutput(task) {
     pbrModelUrl: output.pbr_model || null,
     baseModelUrl: output.base_model || null,
     renderedImageUrl: output.rendered_image || null,
-    generatedImageUrl: output.generated_image || null
+    generatedImageUrl: output.generated_image || null,
+    renderCredits: task?.render_credits ?? task?.credits ?? null
   };
 }
 
@@ -259,6 +260,20 @@ app.get('/api/health', (_req, res) => {
     uploadLimitMb: MAX_UPLOAD_SIZE / 1024 / 1024,
     defaultModelVersion: 'v3.1-20260211'
   });
+});
+
+app.get('/api/balance', async (_req, res, next) => {
+  try {
+    requireApiKey();
+    const response = await fetch(`${TRIPO_API_BASE}/user/balance`, {
+      headers: tripoAuthHeaders({ 'Content-Type': 'application/json' })
+    });
+    const json = await readJsonResponse(response);
+    const data = getTripoData(json);
+    res.json({ balance: data?.balance ?? null, frozen: data?.frozen ?? null });
+  } catch (error) {
+    next(error);
+  }
 });
 
 app.post('/api/generate', upload.single('image'), async (req, res, next) => {
@@ -329,7 +344,7 @@ app.get('/api/asset', async (req, res, next) => {
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) {
     const message = error.code === 'LIMIT_FILE_SIZE'
-      ? 'File quá lớn. Tripo direct upload chỉ hỗ trợ tối đa 20MB.'
+      ? 'File quá lớn. Giới hạn upload là 50MB (Tripo API có thể từ chối file > 20MB).'
       : error.message;
     return res.status(400).json({ error: message });
   }
