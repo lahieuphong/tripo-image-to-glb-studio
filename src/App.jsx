@@ -67,6 +67,21 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const jobId = new URLSearchParams(window.location.search).get('id');
+    if (!jobId) return;
+    fetch(`/api/jobs/${encodeURIComponent(jobId)}`)
+      .then((r) => r.json())
+      .then((job) => {
+        if (!job?.taskId) return;
+        setTaskId(job.taskId);
+        setTask({ status: 'success', progress: 100 });
+        setNormalized(job.normalized || {});
+        setImagePreview(`/api/jobs/${job.taskId}/input`);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
     return () => { if (imagePreview) URL.revokeObjectURL(imagePreview); };
   }, [imagePreview]);
 

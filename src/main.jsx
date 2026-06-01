@@ -5,10 +5,11 @@ import App from './App.jsx';
 import JobsPage from './pages/JobsPage.jsx';
 import './styles.css';
 
-const page = window.location.pathname;
+const isJobsList = window.location.pathname === '/jobs'
+  && !new URLSearchParams(window.location.search).has('id');
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {page === '/jobs' ? <JobsPage /> : <App />}
+    {isJobsList ? <JobsPage /> : <App />}
   </React.StrictMode>
 );
