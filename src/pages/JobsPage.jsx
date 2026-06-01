@@ -1,0 +1,198 @@
+import { useEffect, useState } from 'react';
+
+function proxyUrl(url) {
+  return url ? `/api/asset?url=${encodeURIComponent(url)}` : '';
+}
+
+function JobCard({ job, onSelect }) {
+  const thumb = job.normalized?.renderedImageUrl;
+  return (
+    <button className="job-card" onClick={() => onSelect(job.taskId)}>
+      <div className="job-thumb">
+        {thumb
+          ? <img src={proxyUrl(thumb)} alt="render" loading="lazy" />
+          : <div className="job-thumb-empty">3D</div>
+        }
+      </div>
+      <div className="job-card-body">
+        {job.inputImageName && <p className="job-card-name">{job.inputImageName}</p>}
+        <p className="job-card-id">{job.taskId.slice(0, 14)}…</p>
+        <p className="job-card-date">{new Date(job.savedAt).toLocaleString('vi-VN')}</p>
+        <div className="job-card-meta">
+          {job.modelVersion && <span>{job.modelVersion.split('-')[0]}</span>}
+          {job.renderCredits != null && <span>{job.renderCredits} cr</span>}
+        </div>
+      </div>
+    </button>
+  );
+}
+
+function JobDetail({ taskId }) {
+  const [job, setJob] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState('');
+
+  useEffect(() => {
+    fetch(`/api/jobs/${encodeURIComponent(taskId)}`)
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.error) throw new Error(data.error);
+        setJob(data);
+      })
+      .catch((e) => setErr(e.message || 'Không tải được job.'))
+      .finally(() => setLoading(false));
+  }, [taskId]);
+
+  if (loading) return <div className="jobs-loading">Đang tải…</div>;
+  if (err || !job) return <div className="jobs-empty"><p>{err || 'Không tìm thấy job.'}</p></div>;
+
+  const modelUrl = job.normalized?.modelUrl || '';
+  const proxiedModelUrl = proxyUrl(modelUrl);
+  const downloadUrl = modelUrl
+    ? `/api/asset?download=1&filename=${encodeURIComponent('tripo-output.glb')}&url=${encodeURIComponent(modelUrl)}`
+    : '';
+
+  return (
+    <div className="job-detail">
+      <div className="viewer-shell">
+        {proxiedModelUrl ? (
+          <model-viewer
+            src={proxiedModelUrl}
+            poster={proxyUrl(job.normalized?.renderedImageUrl)}
+            camera-controls
+            auto-rotate
+            shadow-intensity="1"
+            environment-image="neutral"
+            exposure="1"
+            ar
+          />
+        ) : (
+          <div className="empty-viewer">
+            <div className="orb" />
+            <strong>Không có model URL</strong>
+          </div>
+        )}
+      </div>
+
+      <div className="job-detail-meta">
+        <div className="job-meta-row">
+          <span>Task ID</span>
+          <code>{job.taskId}</code>
+        </div>
+        <div className="job-meta-row">
+          <span>Thời gian</span>
+          <span>{new Date(job.savedAt).toLocaleString('vi-VN')}</span>
+        </div>
+        {job.modelVersion && (
+          <div className="job-meta-row">
+            <span>Model</span>
+            <span>{job.modelVersion}</span>
+          </div>
+        )}
+        {job.inputImageName && (
+          <div className="job-meta-row">
+            <span>Ảnh gốc</span>
+            <span>{job.inputImageName}</span>
+          </div>
+        )}
+        {job.renderCredits != null && (
+          <div className="job-meta-row">
+            <span>Credits sử dụng</span>
+            <strong>{job.renderCredits}</strong>
+          </div>
+        )}
+      </div>
+
+      <div className="actions-row">
+        <a
+          className={`secondary-button ${downloadUrl ? '' : 'disabled'}`}
+          href={downloadUrl || '#'}
+        >
+          Download GLB
+        </a>
+        {modelUrl && (
+          <a className="ghost-button" href={modelUrl} target="_blank" rel="noreferrer">
+            Mở URL gốc
+          </a>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function JobsPage() {
+  const taskId = new URLSearchParams(window.location.search).get('id');
+  const [jobs, setJobs] = useState([]);
+  const [loading, setLoading] = useState(!taskId);
+
+  useEffect(() => {
+    if (taskId) return;
+    fetch('/api/jobs')
+      .then((r) => r.json())
+      .then((data) => setJobs(data.jobs || []))
+      .catch(() => setJobs([]))
+      .finally(() => setLoading(false));
+  }, [taskId]);
+
+  return (
+    <main className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <div className="brand-mark">3D</div>
+          <div>
+            <p className="eyebrow">AI Image to GLB</p>
+            <h1>GLB Forge Studio</h1>
+          </div>
+        </div>
+
+        <nav className="nav-list" aria-label="Sidebar">
+          <a className="nav-item" href="/">Generate</a>
+          <button className="nav-item" disabled>Assets</button>
+          <a className="nav-item active" href="/jobs">Jobs</a>
+          <button className="nav-item" disabled>Settings</button>
+        </nav>
+
+        <section className="side-card">
+          <p className="muted">Powered by</p>
+          <strong>Tripo OpenAPI</strong>
+          <p className="tiny">Lịch sử các model đã generate.</p>
+        </section>
+      </aside>
+
+      <section className="workspace">
+        <header className="topbar">
+          <div>
+            <p className="eyebrow">{taskId ? 'Chi tiết' : 'Lịch sử'}</p>
+            <h2>{taskId ? taskId.slice(0, 18) + '…' : 'Jobs History'}</h2>
+          </div>
+          {taskId && (
+            <a className="ghost-button" href="/jobs">← Danh sách</a>
+          )}
+        </header>
+
+        {taskId ? (
+          <JobDetail taskId={taskId} />
+        ) : loading ? (
+          <div className="jobs-loading">Đang tải…</div>
+        ) : jobs.length === 0 ? (
+          <div className="jobs-empty">
+            <div className="orb" />
+            <strong>Chưa có job nào</strong>
+            <p>Generate một model để bắt đầu lưu lịch sử.</p>
+            <a className="primary-button" href="/">Tạo model mới →</a>
+          </div>
+        ) : (
+          <div className="jobs-grid">
+            {jobs.map((j) => (
+              <JobCard
+                key={j.taskId}
+                job={j}
+                onSelect={(id) => { window.location.href = `/jobs?id=${id}`; }}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </main>
+  );
+}

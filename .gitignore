@@ -30,6 +30,9 @@ temp/
 *.tmp
 *.temp
 
+# Generated job files (local storage only)
+storage/jobs/*.json
+
 # OS and editor files
 .DS_Store
 Thumbs.db

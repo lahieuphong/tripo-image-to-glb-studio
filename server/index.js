@@ -14,6 +14,8 @@ const app = express();
 const PORT = Number(process.env.PORT || 8787);
 const TRIPO_API_BASE = 'https://api.tripo3d.ai/v2/openapi';
 const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
+const JOBS_DIR = path.join(__dirname, '..', 'storage', 'jobs');
+fs.mkdirSync(JOBS_DIR, { recursive: true });
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -338,6 +340,58 @@ app.get('/api/asset', async (req, res, next) => {
     }
 
     Readable.fromWeb(upstream.body).pipe(res);
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/jobs', (req, res, next) => {
+  try {
+    const { taskId, modelVersion, normalized, renderCredits, inputImageName } = req.body || {};
+    if (!taskId || typeof taskId !== 'string') {
+      return res.status(400).json({ error: 'Thiếu taskId hợp lệ.' });
+    }
+    const job = {
+      taskId,
+      modelVersion: modelVersion || null,
+      normalized: normalized || {},
+      renderCredits: renderCredits ?? null,
+      inputImageName: inputImageName || null,
+      savedAt: new Date().toISOString()
+    };
+    fs.writeFileSync(
+      path.join(JOBS_DIR, `${sanitizeFilename(taskId)}.json`),
+      JSON.stringify(job, null, 2)
+    );
+    res.json({ ok: true, taskId });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/jobs', (_req, res, next) => {
+  try {
+    const jobs = fs.readdirSync(JOBS_DIR)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => {
+        try { return JSON.parse(fs.readFileSync(path.join(JOBS_DIR, f), 'utf8')); }
+        catch { return null; }
+      })
+      .filter(Boolean)
+      .sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
+    res.json({ jobs });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/jobs/:taskId', (req, res, next) => {
+  try {
+    const filepath = path.join(JOBS_DIR, `${sanitizeFilename(req.params.taskId)}.json`);
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ error: 'Job không tồn tại.' });
+    }
+    res.json(JSON.parse(fs.readFileSync(filepath, 'utf8')));
   } catch (error) {
     next(error);
   }

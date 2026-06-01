@@ -161,6 +161,17 @@ export default function App() {
       if (FINAL_STATUSES.has(parsed.status)) {
         if (parsed.status === 'success') {
           addLog('Hoàn tất. Bạn có thể preview và download GLB.');
+          fetch('/api/jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              taskId: id,
+              modelVersion: options.modelVersion,
+              normalized: parsed.normalized,
+              renderCredits: parsed.normalized?.renderCredits ?? null,
+              inputImageName: imageFile?.name ?? null,
+            })
+          }).catch(() => {});
           refreshBalance({ force: true });
         } else {
           throw new Error(`Task kết thúc với trạng thái: ${parsed.status}`);
@@ -196,7 +207,7 @@ export default function App() {
           <nav className="nav-list" aria-label="Sidebar">
             <button className="nav-item active">Generate</button>
             <button className="nav-item" disabled>Assets</button>
-            <button className="nav-item" disabled>History</button>
+            <a className="nav-item" href="/jobs">Jobs</a>
             <button className="nav-item" disabled>Settings</button>
           </nav>
 
