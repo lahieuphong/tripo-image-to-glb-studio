@@ -161,6 +161,7 @@ export default function App() {
       if (FINAL_STATUSES.has(parsed.status)) {
         if (parsed.status === 'success') {
           addLog('Hoàn tất. Bạn có thể preview và download GLB.');
+          window.history.pushState({}, '', `/jobs?id=${encodeURIComponent(id)}`);
           fetch('/api/jobs', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
