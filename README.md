@@ -21,7 +21,7 @@
 | Phần mềm | Phiên bản tối thiểu |
 |----------|---------------------|
 | Node.js  | 18.17               |
-| npm hoặc yarn | bất kỳ        |
+| yarn | bất kỳ        |
 
 ---
 
@@ -32,7 +32,7 @@
 ```bash
 git clone https://github.com/lahieuphong/tripo-image-to-glb-studio.git
 cd tripo-image-to-glb-studio
-npm install
+yarn install
 ```
 
 ### 2. Tạo file `.env`
@@ -52,7 +52,7 @@ ALLOW_ANY_ASSET_PROXY=false
 ### 3. Chạy development
 
 ```bash
-npm run dev
+yarn dev
 ```
 
 Mở trình duyệt tại `http://localhost:5173`
@@ -62,8 +62,8 @@ Mở trình duyệt tại `http://localhost:5173`
 ### 4. Build production
 
 ```bash
-npm run build   # build frontend vào dist/
-npm start       # chạy server phục vụ cả frontend + API
+yarn build   # build frontend vào dist/
+yarn start       # chạy server phục vụ cả frontend + API
 ```
 
 Truy cập tại `http://localhost:8787`
