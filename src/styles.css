@@ -705,6 +705,7 @@ model-viewer {
 .credit-remaining { color: var(--text-dim); }
 
 /* ─── Activity log ────────────────────────────────────────────── */
+.logs { max-height: 220px; overflow-y: auto; }
 .logs-title { font-weight: 900; margin-bottom: 10px; }
 
 .log-line {
