@@ -69,6 +69,31 @@ function ApiBadge({ configured }) {
   );
 }
 
+function CreditErrorModal({ onClose }) {
+  return (
+    <div className="modal-backdrop" onClick={onClose}>
+      <div className="modal-card" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-icon">⚡</div>
+        <h3>Tài khoản API chưa có credit</h3>
+        <p>
+          Bạn cần nạp thêm credit API tại Tripo Platform để tiếp tục generate.
+        </p>
+        <div className="modal-actions">
+          <a
+            className="modal-btn-primary"
+            href="https://platform.tripo3d.ai/billing"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Nạp credit ngay →
+          </a>
+          <button className="modal-btn-ghost" onClick={onClose}>Đóng</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [health, setHealth] = useState(null);
   const [balance, setBalance] = useState(null);
@@ -243,8 +268,15 @@ export default function App() {
 
   const progress = task?.progress ?? 0;
   const currentStatus = task?.status || (loading ? 'queued' : 'idle');
+  const isCreditError = Boolean(error && (
+    error.toLowerCase().includes('enough credit') ||
+    error.toLowerCase().includes('not enough') ||
+    (error.includes('403') && error.toLowerCase().includes('credit'))
+  ));
 
   return (
+    <>
+    {isCreditError && <CreditErrorModal onClose={() => setError('')} />}
     <main className="app-shell">
       <aside className="sidebar">
         <div className="brand">
@@ -550,5 +582,6 @@ export default function App() {
         </div>
       </section>
     </main>
+    </>
   );
 }
