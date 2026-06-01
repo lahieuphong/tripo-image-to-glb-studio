@@ -738,8 +738,15 @@ model-viewer {
 .logs {
   max-height: 220px;
   overflow-y: auto;
+  padding-bottom: 0; /* fix: overflow+border-radius clips padding-bottom */
   scrollbar-width: thin;
   scrollbar-color: rgba(124, 92, 255, 0.35) transparent;
+}
+
+.logs::after {
+  content: '';
+  display: block;
+  height: 14px; /* restore bottom spacing inside scroll area */
 }
 
 .logs::-webkit-scrollbar {
