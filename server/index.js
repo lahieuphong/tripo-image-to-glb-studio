@@ -290,6 +290,16 @@ app.post('/api/generate', upload.single('image'), async (req, res, next) => {
     const payload = buildImageToModelPayload(req.file, uploaded.token, req.body || {});
     const created = await createTripoTask(payload);
 
+    // Save input image for job history (non-critical)
+    try {
+      const ext = req.file.mimetype === 'image/webp' ? 'webp'
+        : req.file.mimetype === 'image/png' ? 'png' : 'jpg';
+      fs.writeFileSync(
+        path.join(JOBS_DIR, `${sanitizeFilename(created.taskId)}_input.${ext}`),
+        req.file.buffer
+      );
+    } catch { /* non-critical */ }
+
     res.json({
       taskId: created.taskId,
       uploadToken: uploaded.token,
@@ -392,6 +402,23 @@ app.get('/api/jobs/:taskId', (req, res, next) => {
       return res.status(404).json({ error: 'Job không tồn tại.' });
     }
     res.json(JSON.parse(fs.readFileSync(filepath, 'utf8')));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/jobs/:taskId/input', (req, res, next) => {
+  try {
+    const base = sanitizeFilename(req.params.taskId);
+    for (const [ext, mime] of [['jpg', 'image/jpeg'], ['png', 'image/png'], ['webp', 'image/webp']]) {
+      const fp = path.join(JOBS_DIR, `${base}_input.${ext}`);
+      if (fs.existsSync(fp)) {
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(fs.readFileSync(fp));
+      }
+    }
+    res.status(404).end();
   } catch (error) {
     next(error);
   }

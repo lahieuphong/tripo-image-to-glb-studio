@@ -5,14 +5,20 @@ function proxyUrl(url) {
 }
 
 function JobCard({ job, onSelect }) {
-  const thumb = job.normalized?.renderedImageUrl;
+  const [imgFailed, setImgFailed] = useState(false);
   return (
     <button className="job-card" onClick={() => onSelect(job.taskId)}>
       <div className="job-thumb">
-        {thumb
-          ? <img src={proxyUrl(thumb)} alt="render" loading="lazy" />
-          : <div className="job-thumb-empty">3D</div>
-        }
+        {!imgFailed ? (
+          <img
+            src={`/api/jobs/${job.taskId}/input`}
+            alt="input"
+            loading="lazy"
+            onError={() => setImgFailed(true)}
+          />
+        ) : (
+          <div className="job-thumb-empty">3D</div>
+        )}
       </div>
       <div className="job-card-body">
         {job.inputImageName && <p className="job-card-name">{job.inputImageName}</p>}
@@ -54,26 +60,52 @@ function JobDetail({ taskId }) {
 
   return (
     <div className="job-detail">
-      <div className="viewer-shell">
-        {proxiedModelUrl ? (
-          <model-viewer
-            src={proxiedModelUrl}
-            poster={proxyUrl(job.normalized?.renderedImageUrl)}
-            camera-controls
-            auto-rotate
-            shadow-intensity="1"
-            environment-image="neutral"
-            exposure="1"
-            ar
-          />
-        ) : (
-          <div className="empty-viewer">
-            <div className="orb" />
-            <strong>Không có model URL</strong>
+
+      {/* ── 3 phần chính ─────────────────────────────── */}
+      <div className="job-detail-top">
+
+        {/* Phần 1: Ảnh gốc */}
+        <div className="job-section">
+          <p className="eyebrow" style={{ marginBottom: 10 }}>Ảnh gốc (Input)</p>
+          <div className="job-input-wrap">
+            <img
+              src={`/api/jobs/${taskId}/input`}
+              alt={job.inputImageName || 'Input'}
+              onError={(e) => { e.target.closest('.job-input-wrap').style.display = 'none'; }}
+            />
           </div>
-        )}
+          {job.inputImageName && (
+            <p className="job-input-name">{job.inputImageName}</p>
+          )}
+        </div>
+
+        {/* Phần 2: 3D Viewer */}
+        <div className="job-section">
+          <p className="eyebrow" style={{ marginBottom: 10 }}>3D Viewer (Output)</p>
+          <div className="viewer-shell job-viewer-shell">
+            {proxiedModelUrl ? (
+              <model-viewer
+                src={proxiedModelUrl}
+                poster={proxyUrl(job.normalized?.renderedImageUrl)}
+                camera-controls
+                auto-rotate
+                shadow-intensity="1"
+                environment-image="neutral"
+                exposure="1"
+                ar
+              />
+            ) : (
+              <div className="empty-viewer">
+                <div className="orb" />
+                <strong>Không có model URL</strong>
+              </div>
+            )}
+          </div>
+        </div>
+
       </div>
 
+      {/* Phần 3: Metadata + Download */}
       <div className="job-detail-meta">
         <div className="job-meta-row">
           <span>Task ID</span>
@@ -116,6 +148,7 @@ function JobDetail({ taskId }) {
           </a>
         )}
       </div>
+
     </div>
   );
 }
