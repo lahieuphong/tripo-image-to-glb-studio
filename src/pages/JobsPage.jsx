@@ -5,17 +5,16 @@ function proxyUrl(url) {
 }
 
 function JobCard({ job, onSelect }) {
-  const [imgFailed, setImgFailed] = useState(false);
+  const [inputFailed, setInputFailed] = useState(false);
+  const [renderFailed, setRenderFailed] = useState(false);
+  const renderedThumb = job.normalized?.renderedImageUrl;
   return (
     <button className="job-card" onClick={() => onSelect(job.taskId)}>
       <div className="job-thumb">
-        {!imgFailed ? (
-          <img
-            src={`/api/jobs/${job.taskId}/input`}
-            alt="input"
-            loading="lazy"
-            onError={() => setImgFailed(true)}
-          />
+        {!inputFailed ? (
+          <img src={`/api/jobs/${job.taskId}/input`} alt="input" loading="lazy" onError={() => setInputFailed(true)} />
+        ) : !renderFailed && renderedThumb ? (
+          <img src={proxyUrl(renderedThumb)} alt="render" loading="lazy" onError={() => setRenderFailed(true)} />
         ) : (
           <div className="job-thumb-empty">3D</div>
         )}
@@ -37,6 +36,7 @@ function JobDetail({ taskId }) {
   const [job, setJob] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
+  const [inputImgFailed, setInputImgFailed] = useState(false);
 
   useEffect(() => {
     fetch(`/api/jobs/${encodeURIComponent(taskId)}`)
@@ -66,13 +66,25 @@ function JobDetail({ taskId }) {
 
         {/* Phần 1: Ảnh gốc */}
         <div className="job-section">
-          <p className="eyebrow" style={{ marginBottom: 10 }}>Ảnh gốc (Input)</p>
+          <p className="eyebrow" style={{ marginBottom: 10 }}>
+            {inputImgFailed ? 'Ảnh render Tripo' : 'Ảnh gốc (Input)'}
+          </p>
           <div className="job-input-wrap">
-            <img
-              src={`/api/jobs/${taskId}/input`}
-              alt={job.inputImageName || 'Input'}
-              onError={(e) => { e.target.closest('.job-input-wrap').style.display = 'none'; }}
-            />
+            {!inputImgFailed ? (
+              <img
+                src={`/api/jobs/${taskId}/input`}
+                alt={job.inputImageName || 'Input'}
+                onError={() => setInputImgFailed(true)}
+              />
+            ) : job.normalized?.renderedImageUrl ? (
+              <img
+                src={proxyUrl(job.normalized.renderedImageUrl)}
+                alt="Render"
+                onError={(e) => { e.target.closest('.job-input-wrap').style.display = 'none'; }}
+              />
+            ) : (
+              <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: 20 }}>Không có ảnh</div>
+            )}
           </div>
           {job.inputImageName && (
             <p className="job-input-name">{job.inputImageName}</p>
