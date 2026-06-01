@@ -735,7 +735,30 @@ model-viewer {
 .credit-remaining { color: var(--text-dim); }
 
 /* ─── Activity log ────────────────────────────────────────────── */
-.logs { max-height: 220px; overflow-y: auto; }
+.logs {
+  max-height: 220px;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(124, 92, 255, 0.35) transparent;
+}
+
+.logs::-webkit-scrollbar {
+  width: 4px;
+}
+
+.logs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.logs::-webkit-scrollbar-thumb {
+  background: rgba(124, 92, 255, 0.35);
+  border-radius: 999px;
+}
+
+.logs::-webkit-scrollbar-thumb:hover {
+  background: rgba(124, 92, 255, 0.65);
+}
+
 .logs-title { font-weight: 900; margin-bottom: 10px; }
 
 .log-line {
