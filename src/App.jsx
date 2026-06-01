@@ -94,8 +94,8 @@ export default function App() {
       setError('Chỉ hỗ trợ ảnh PNG, JPG/JPEG hoặc WEBP.');
       return;
     }
-    if (file.size > 50 * 1024 * 1024) {
-      setError('File quá lớn. Giới hạn upload là 50MB.');
+    if (file.size > 200 * 1024 * 1024) {
+      setError('File quá lớn. Giới hạn upload là 200MB.');
       return;
     }
 

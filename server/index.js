@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = Number(process.env.PORT || 8787);
 const TRIPO_API_BASE = 'https://api.tripo3d.ai/v2/openapi';
-const MAX_UPLOAD_SIZE = 50 * 1024 * 1024;
+const MAX_UPLOAD_SIZE = 200 * 1024 * 1024;
 const JOBS_DIR = path.join(__dirname, '..', 'storage', 'jobs');
 fs.mkdirSync(JOBS_DIR, { recursive: true });
 
@@ -400,7 +400,7 @@ app.get('/api/jobs/:taskId', (req, res, next) => {
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) {
     const message = error.code === 'LIMIT_FILE_SIZE'
-      ? 'File quá lớn. Giới hạn upload là 50MB (Tripo API có thể từ chối file > 20MB).'
+      ? 'File quá lớn. Giới hạn upload là 200MB (Tripo API có thể từ chối file > 20MB).'
       : error.message;
     return res.status(400).json({ error: message });
   }

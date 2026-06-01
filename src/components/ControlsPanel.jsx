@@ -47,7 +47,7 @@ export default function ControlsPanel({
           <p className="eyebrow">Input</p>
           <h3>Upload ảnh</h3>
         </div>
-        <span className="pill">PNG/JPG/WEBP · ≤50MB</span>
+        <span className="pill">PNG/JPG/WEBP · ≤200MB</span>
       </div>
 
       <label
