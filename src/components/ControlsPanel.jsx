@@ -1,4 +1,30 @@
+import { useEffect, useRef, useState } from 'react';
 import { MODELS } from '../constants.js';
+
+const MODEL_OPTIONS = MODELS.map((model) => ({
+  value: model.value,
+  label: model.label
+}));
+
+const TEXTURE_QUALITY_OPTIONS = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'detailed', label: 'Detailed' }
+];
+
+const GEOMETRY_QUALITY_OPTIONS = [
+  { value: 'standard', label: 'Standard' },
+  { value: 'detailed', label: 'Ultra / Detailed' }
+];
+
+const ORIENTATION_OPTIONS = [
+  { value: 'default', label: 'Default' },
+  { value: 'align_image', label: 'Align image' }
+];
+
+const TEXTURE_ALIGNMENT_OPTIONS = [
+  { value: 'original_image', label: 'Original image' },
+  { value: 'geometry', label: 'Geometry' }
+];
 
 export default function ControlsPanel({
   options,
@@ -50,14 +76,12 @@ export default function ControlsPanel({
 
       <div className="form-row">
         <label>Model</label>
-        <select
+        <SelectField
           value={options.modelVersion}
-          onChange={(e) => updateOption('modelVersion', e.target.value)}
-        >
-          {MODELS.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
+          onChange={(value) => updateOption('modelVersion', value)}
+          options={MODEL_OPTIONS}
+          ariaLabel="Model"
+        />
         <p className="hint">{selectedModel.description}</p>
       </div>
 
@@ -89,25 +113,23 @@ export default function ControlsPanel({
       <div className="two-col">
         <div className="form-row">
           <label>Texture quality</label>
-          <select
+          <SelectField
             value={options.textureQuality}
-            onChange={(e) => updateOption('textureQuality', e.target.value)}
+            onChange={(value) => updateOption('textureQuality', value)}
+            options={TEXTURE_QUALITY_OPTIONS}
             disabled={!options.texture && !options.pbr}
-          >
-            <option value="standard">Standard</option>
-            <option value="detailed">Detailed</option>
-          </select>
+            ariaLabel="Texture quality"
+          />
         </div>
         <div className="form-row">
           <label>Geometry quality</label>
-          <select
+          <SelectField
             value={options.geometryQuality}
-            onChange={(e) => updateOption('geometryQuality', e.target.value)}
+            onChange={(value) => updateOption('geometryQuality', value)}
+            options={GEOMETRY_QUALITY_OPTIONS}
             disabled={!options.modelVersion.startsWith('v3')}
-          >
-            <option value="standard">Standard</option>
-            <option value="detailed">Ultra / Detailed</option>
-          </select>
+            ariaLabel="Geometry quality"
+          />
         </div>
       </div>
 
@@ -127,27 +149,25 @@ export default function ControlsPanel({
           </div>
           <div className="form-row">
             <label>Orientation</label>
-            <select
+            <SelectField
               value={options.orientation}
-              onChange={(e) => updateOption('orientation', e.target.value)}
+              onChange={(value) => updateOption('orientation', value)}
+              options={ORIENTATION_OPTIONS}
               disabled={!options.texture && !options.pbr}
-            >
-              <option value="default">Default</option>
-              <option value="align_image">Align image</option>
-            </select>
+              ariaLabel="Orientation"
+            />
           </div>
         </div>
 
         <div className="two-col">
           <div className="form-row">
             <label>Texture alignment</label>
-            <select
+            <SelectField
               value={options.textureAlignment}
-              onChange={(e) => updateOption('textureAlignment', e.target.value)}
-            >
-              <option value="original_image">Original image</option>
-              <option value="geometry">Geometry</option>
-            </select>
+              onChange={(value) => updateOption('textureAlignment', value)}
+              options={TEXTURE_ALIGNMENT_OPTIONS}
+              ariaLabel="Texture alignment"
+            />
           </div>
           <div className="form-row">
             <label>Model seed</label>
@@ -196,5 +216,86 @@ export default function ControlsPanel({
         {loading ? 'Đang generate...' : 'Generate GLB'}
       </button>
     </section>
+  );
+}
+
+function SelectField({ value, onChange, options, disabled = false, ariaLabel }) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef(null);
+  const selected = options.find((option) => option.value === value) || options[0];
+
+  useEffect(() => {
+    if (!open) return undefined;
+
+    function handlePointerDown(event) {
+      if (!rootRef.current?.contains(event.target)) setOpen(false);
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') setOpen(false);
+    }
+
+    document.addEventListener('pointerdown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (disabled) setOpen(false);
+  }, [disabled]);
+
+  function chooseOption(nextValue) {
+    onChange(nextValue);
+    setOpen(false);
+  }
+
+  function handleButtonKeyDown(event) {
+    if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return;
+    event.preventDefault();
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+      setOpen(true);
+      return;
+    }
+
+    setOpen((current) => !current);
+  }
+
+  return (
+    <div className={`select-field ${open ? 'open' : ''}`} ref={rootRef}>
+      <button
+        type="button"
+        className="select-button"
+        onClick={() => setOpen((current) => !current)}
+        onKeyDown={handleButtonKeyDown}
+        disabled={disabled}
+        aria-label={ariaLabel}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span>{selected?.label}</span>
+        <span className="select-chevron" aria-hidden="true" />
+      </button>
+
+      {open && (
+        <div className="select-menu" role="listbox" aria-label={ariaLabel}>
+          {options.map((option) => (
+            <button
+              key={option.value}
+              type="button"
+              className={`select-option ${option.value === value ? 'selected' : ''}`}
+              onClick={() => chooseOption(option.value)}
+              role="option"
+              aria-selected={option.value === value}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
