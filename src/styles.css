@@ -541,7 +541,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .toggle-card input[type="checkbox"]:checked {
   border-color: var(--accent);
-  background: radial-gradient(circle at center, var(--accent) 38%, var(--bg-input) 39%);
+  background-color: var(--accent);
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'><path d='M1.5 5.5L4 8L8.5 2.5' stroke='white' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round' fill='none'/></svg>");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 11px;
   box-shadow: 0 0 10px var(--accent-glow);
 }
 
