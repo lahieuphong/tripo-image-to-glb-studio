@@ -41,7 +41,7 @@ yarn install
 cp .env.example .env
 ```
 
-Mở `.env` và điền API key (lấy tại [platform.tripo3d.ai](https://platform.tripo3d.ai)):
+Mở `.env` và điền API key (lấy tại [platform.tripo3d.ai/billing](https://platform.tripo3d.ai/billing)):
 
 ```env
 TRIPO_API_KEY=tsk_your_real_key_here
