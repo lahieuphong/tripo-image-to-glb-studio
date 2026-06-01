@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MODELS, FINAL_STATUSES } from './constants.js';
 import { wait, outputFromTaskResponse, isCreditErrorMessage } from './utils.js';
-import ApiBadge from './components/ApiBadge.jsx';
 import CreditErrorModal from './components/CreditErrorModal.jsx';
-import ControlsPanel from './components/ControlsPanel.jsx';
-import PreviewPanel from './components/PreviewPanel.jsx';
+import TopBar from './components/TopBar.jsx';
+import IconSidebar from './components/IconSidebar.jsx';
+import ControlPanel from './components/ControlPanel.jsx';
+import CenterViewer from './components/CenterViewer.jsx';
+import RightPanel from './components/RightPanel.jsx';
 
 export default function App() {
   const [health, setHealth] = useState(null);
@@ -210,69 +212,28 @@ export default function App() {
   return (
     <>
       {isCreditError && <CreditErrorModal onClose={() => setError('')} />}
-      <main className="app-shell">
-        <aside className="sidebar">
-          <div className="brand">
-            <div className="brand-mark">3D</div>
-            <div>
-              <p className="eyebrow">AI Image to GLB</p>
-              <h1>GLB Forge Studio</h1>
-            </div>
-          </div>
-
-          <nav className="nav-list" aria-label="Sidebar">
-            <button className="nav-item active">Generate</button>
-            <button className="nav-item" disabled>Assets</button>
-            <a className="nav-item" href="/jobs">Jobs</a>
-            <button className="nav-item" disabled>Settings</button>
-          </nav>
-
-          <section className="side-card">
-            <p className="muted">Powered by</p>
-            <strong>Tripo OpenAPI</strong>
-            <p className="tiny">Ảnh được gửi qua backend local để API key không lộ ra trình duyệt.</p>
-          </section>
-        </aside>
-
-        <section className="workspace">
-          <header className="topbar">
-            <div>
-              <p className="eyebrow">Image → 3D Model</p>
-              <h2>Tạo model GLB từ một ảnh</h2>
-            </div>
-            <ApiBadge configured={health?.apiKeyConfigured} balance={balance} />
-          </header>
-
-          <div className="grid">
-            <ControlsPanel
-              options={options}
-              updateOption={updateOption}
-              selectedModel={selectedModel}
-              imagePreview={imagePreview}
-              dragOver={dragOver}
-              error={error}
-              loading={loading}
-              imageFile={imageFile}
-              setFile={setFile}
-              setDragOver={setDragOver}
-              onDrop={onDrop}
-              onGenerate={generate}
-            />
-            <PreviewPanel
-              task={task}
-              normalized={normalized}
-              taskId={taskId}
-              progress={progress}
-              currentStatus={currentStatus}
-              proxiedModelUrl={proxiedModelUrl}
-              downloadUrl={downloadUrl}
-              modelUrl={modelUrl}
-              logs={logs}
-              balance={balance}
-            />
-          </div>
-        </section>
-      </main>
+      <div className="s-root">
+        <TopBar health={health} balance={balance} />
+        <div className="s-body">
+          <IconSidebar />
+          <ControlPanel
+            options={options} updateOption={updateOption} selectedModel={selectedModel}
+            imagePreview={imagePreview} dragOver={dragOver} setDragOver={setDragOver}
+            setFile={setFile} onDrop={onDrop} error={error} loading={loading}
+            imageFile={imageFile} onGenerate={generate}
+          />
+          <CenterViewer
+            proxiedModelUrl={proxiedModelUrl} normalized={normalized}
+            loading={loading} currentStatus={currentStatus} progress={progress}
+          />
+          <RightPanel
+            taskId={taskId} task={task} normalized={normalized}
+            progress={progress} currentStatus={currentStatus}
+            downloadUrl={downloadUrl} modelUrl={modelUrl}
+            logs={logs} balance={balance}
+          />
+        </div>
+      </div>
     </>
   );
 }
