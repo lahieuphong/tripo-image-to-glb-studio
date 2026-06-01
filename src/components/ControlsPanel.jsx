@@ -139,12 +139,12 @@ export default function ControlsPanel({
         <div className="two-col">
           <div className="form-row">
             <label>Face limit</label>
-            <input
-              type="number"
+            <NumberField
               min="48"
               placeholder="Tự động"
               value={options.faceLimit}
-              onChange={(e) => updateOption('faceLimit', e.target.value)}
+              onChange={(value) => updateOption('faceLimit', value)}
+              ariaLabel="Face limit"
             />
           </div>
           <div className="form-row">
@@ -171,11 +171,11 @@ export default function ControlsPanel({
           </div>
           <div className="form-row">
             <label>Model seed</label>
-            <input
-              type="number"
+            <NumberField
               placeholder="Random"
               value={options.modelSeed}
-              onChange={(e) => updateOption('modelSeed', e.target.value)}
+              onChange={(value) => updateOption('modelSeed', value)}
+              ariaLabel="Model seed"
             />
           </div>
         </div>
@@ -216,6 +216,62 @@ export default function ControlsPanel({
         {loading ? 'Đang generate...' : 'Generate GLB'}
       </button>
     </section>
+  );
+}
+
+function NumberField({ value, onChange, min, max, step = 1, placeholder, ariaLabel }) {
+  const inputRef = useRef(null);
+  const minValue = min === undefined ? undefined : Number(min);
+  const maxValue = max === undefined ? undefined : Number(max);
+  const stepValue = Number(step) || 1;
+
+  function clamp(nextValue) {
+    if (Number.isFinite(minValue) && nextValue < minValue) return minValue;
+    if (Number.isFinite(maxValue) && nextValue > maxValue) return maxValue;
+    return nextValue;
+  }
+
+  function stepBy(direction) {
+    const hasValue = value !== '' && value !== null && value !== undefined;
+    const current = hasValue ? Number(value) : Number.NaN;
+    const emptyBase = Number.isFinite(minValue) ? minValue - direction * stepValue : 0;
+    const base = Number.isFinite(current) ? current : emptyBase;
+    const nextValue = clamp(base + direction * stepValue);
+
+    onChange(String(nextValue));
+    inputRef.current?.focus();
+  }
+
+  return (
+    <div className="number-field">
+      <input
+        ref={inputRef}
+        type="number"
+        min={min}
+        max={max}
+        step={step}
+        placeholder={placeholder}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        aria-label={ariaLabel}
+      />
+      <div className="number-stepper">
+        <button
+          type="button"
+          className="number-stepper-button up"
+          onClick={() => stepBy(1)}
+          aria-label={`Increase ${ariaLabel}`}
+          tabIndex={-1}
+        />
+        <button
+          type="button"
+          className="number-stepper-button down"
+          onClick={() => stepBy(-1)}
+          aria-label={`Decrease ${ariaLabel}`}
+          tabIndex={-1}
+        />
+      </div>
+    </div>
   );
 }
 

@@ -324,6 +324,82 @@ button, a { -webkit-tap-highlight-color: transparent; }
   box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.12);
 }
 
+.number-field {
+  position: relative;
+  width: 100%;
+}
+
+.number-field input {
+  min-height: 50px;
+  padding-right: 48px;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.number-field input::-webkit-outer-spin-button,
+.number-field input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.number-field:focus-within input {
+  border-color: var(--accent-border);
+  box-shadow: 0 0 0 4px rgba(124, 92, 255, 0.12);
+}
+
+.number-stepper {
+  position: absolute;
+  top: 7px;
+  right: 7px;
+  bottom: 7px;
+  width: 30px;
+  display: grid;
+  grid-template-rows: 1fr 1fr;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.number-field:focus-within .number-stepper {
+  border-color: var(--accent-border);
+}
+
+.number-stepper-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+}
+
+.number-stepper-button + .number-stepper-button {
+  border-top: 1px solid rgba(148, 163, 184, 0.14);
+}
+
+.number-stepper-button:hover {
+  color: var(--text-primary);
+  background: rgba(124, 92, 255, 0.18);
+}
+
+.number-stepper-button::before {
+  content: "";
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+}
+
+.number-stepper-button.up::before {
+  border-bottom: 5px solid currentColor;
+}
+
+.number-stepper-button.down::before {
+  border-top: 5px solid currentColor;
+}
+
 .select-field {
   position: relative;
   width: 100%;
