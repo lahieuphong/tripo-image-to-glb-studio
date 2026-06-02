@@ -1,22 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { statusText } from '../utils.js';
 
-export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress }) {
+export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress, modelVisible = true }) {
   const [selected, setSelected] = useState(false);
-  const containerRef = useRef(null);
   const mvRef = useRef(null);
   const pointerDownPos = useRef(null);
 
   useEffect(() => { setSelected(false); }, [proxiedModelUrl]);
-
-  useEffect(() => {
-    if (!selected) return;
-    function onOutside(e) {
-      if (!containerRef.current?.contains(e.target)) setSelected(false);
-    }
-    document.addEventListener('pointerdown', onOutside);
-    return () => document.removeEventListener('pointerdown', onOutside);
-  }, [selected]);
 
   function handlePointerDown(e) {
     pointerDownPos.current = { x: e.clientX, y: e.clientY };
@@ -50,16 +40,16 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
 
   return (
     <div
-      ref={containerRef}
       className={`s-center${proxiedModelUrl && selected ? ' s-center-active' : ''}`}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
       {proxiedModelUrl ? (
-        <div className="s-mv-wrapper">
+        <div className="s-mv-wrapper" style={modelVisible ? undefined : { visibility: 'hidden' }}>
           <model-viewer ref={mvRef} src={proxiedModelUrl}
             camera-controls auto-rotate shadow-intensity="0"
-            environment-image="neutral" exposure="1" ar>
+            environment-image="neutral" exposure="1" ar
+            min-camera-orbit="auto auto 50%">
             <div slot="poster" className="s-mv-poster">
               <div className="s-mv-spinner" />
               <span className="s-mv-hint">Đang tải model 3D…</span>

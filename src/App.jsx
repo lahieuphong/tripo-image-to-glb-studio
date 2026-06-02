@@ -23,6 +23,8 @@ export default function App() {
   const activeTaskRef = useRef('');
   const generatingRef = useRef(false);
 
+  const [modelVisible, setModelVisible] = useState(true);
+
   const [options, setOptions] = useState({
     modelVersion: 'v3.1-20260211',
     texture: true,
@@ -43,6 +45,9 @@ export default function App() {
     () => MODELS.find((m) => m.value === options.modelVersion) || MODELS[0],
     [options.modelVersion]
   );
+
+  // Reset visibility when a new model loads
+  useEffect(() => { setModelVisible(true); }, [taskId]);
 
   const modelUrl = normalized?.modelUrl || '';
   const proxiedModelUrl = normalized?.localModelSrc
@@ -236,12 +241,14 @@ export default function App() {
           <CenterViewer
             proxiedModelUrl={proxiedModelUrl} normalized={normalized}
             loading={loading} currentStatus={currentStatus} progress={progress}
+            modelVisible={modelVisible}
           />
           <RightPanel
             taskId={taskId} task={task} normalized={normalized}
             progress={progress} currentStatus={currentStatus}
             downloadUrl={downloadUrl} modelUrl={modelUrl}
             logs={logs} balance={balance}
+            modelVisible={modelVisible} onToggleModelVisible={() => setModelVisible(v => !v)}
           />
         </div>
       </div>

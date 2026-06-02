@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { statusText } from '../utils.js';
+import AssetsTab from './AssetsTab.jsx';
 
 export default function RightPanel({
   taskId, task, normalized, progress, currentStatus,
   downloadUrl, modelUrl, logs, balance,
+  modelVisible, onToggleModelVisible,
 }) {
   const [tab, setTab] = useState('result');
   return (
@@ -11,6 +13,7 @@ export default function RightPanel({
       <div className="s-rp-tabs">
         <button className={`s-rp-tab${tab==='result'?' active':''}`} onClick={() => setTab('result')}>Kết quả</button>
         <button className={`s-rp-tab${tab==='log'?' active':''}`} onClick={() => setTab('log')}>Activity</button>
+        <button className={`s-rp-tab${tab==='assets'?' active':''}`} onClick={() => setTab('assets')}>Tài sản</button>
       </div>
 
       {tab === 'result' && (
@@ -60,6 +63,8 @@ export default function RightPanel({
           }
         </div>
       )}
+
+      {tab === 'assets' && <AssetsTab taskId={taskId} modelVisible={modelVisible} onToggleModelVisible={onToggleModelVisible} />}
     </aside>
   );
 }
