@@ -24,6 +24,7 @@ export default function App() {
   const generatingRef = useRef(false);
 
   const [modelVisible, setModelVisible] = useState(true);
+  const [transform, setTransform] = useState(null);
 
   const [options, setOptions] = useState({
     modelVersion: 'v3.1-20260211',
@@ -46,8 +47,8 @@ export default function App() {
     [options.modelVersion]
   );
 
-  // Reset visibility when a new model loads
-  useEffect(() => { setModelVisible(true); }, [taskId]);
+  // Reset visibility and transform when a new model loads
+  useEffect(() => { setModelVisible(true); setTransform(null); }, [taskId]);
 
   const modelUrl = normalized?.modelUrl || '';
   const proxiedModelUrl = normalized?.localModelSrc
@@ -241,7 +242,7 @@ export default function App() {
           <CenterViewer
             proxiedModelUrl={proxiedModelUrl} normalized={normalized}
             loading={loading} currentStatus={currentStatus} progress={progress}
-            modelVisible={modelVisible}
+            modelVisible={modelVisible} onCameraChange={setTransform}
           />
           <RightPanel
             taskId={taskId} task={task} normalized={normalized}
@@ -249,6 +250,7 @@ export default function App() {
             downloadUrl={downloadUrl} modelUrl={modelUrl}
             logs={logs} balance={balance}
             modelVisible={modelVisible} onToggleModelVisible={() => setModelVisible(v => !v)}
+            transform={transform}
           />
         </div>
       </div>

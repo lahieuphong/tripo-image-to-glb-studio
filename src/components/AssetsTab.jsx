@@ -73,8 +73,11 @@ function TfRow({ icon, values }) {
   );
 }
 
-export default function AssetsTab({ taskId, modelVisible = true, onToggleModelVisible }) {
+export default function AssetsTab({ taskId, modelVisible = true, onToggleModelVisible, transform }) {
   const nodeName = taskId ? `tripo_node_${taskId.slice(0, 13)}…` : null;
+  const pos = transform?.pos ?? [0, 0, 0];
+  const rot = transform?.rot ?? [0, 0, 0];
+  const scl = transform?.scl ?? [1, 1, 1];
 
   return (
     <div className="s-rp-body s-assets-body">
@@ -104,9 +107,9 @@ export default function AssetsTab({ taskId, modelVisible = true, onToggleModelVi
           <button className="s-asset-icon-btn" title="Đặt lại">{RESET_ICON}</button>
         </div>
         <div className="s-tf-rows">
-          <TfRow icon={MOVE_ICON}   values={[0, 0, 0]} />
-          <TfRow icon={ROTATE_ICON} values={[0, 0, 0]} />
-          <TfRow icon={SCALE_ICON}  values={[1, 1, 1]} />
+          <TfRow icon={MOVE_ICON}   values={pos} />
+          <TfRow icon={ROTATE_ICON} values={rot} />
+          <TfRow icon={SCALE_ICON}  values={scl} />
         </div>
       </div>
     </div>

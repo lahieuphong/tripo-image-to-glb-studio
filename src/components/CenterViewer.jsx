@@ -68,36 +68,67 @@ function syncGizmoToModelCenter(mv, el, container, modelCenter) {
   el.style.top  = `${mvRect.top  - cRect.top  + sy}px`;
 }
 
-export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress, modelVisible = true }) {
+export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress, modelVisible = true, onCameraChange }) {
   const [selected, setSelected] = useState(false);
   const [axisLine, setAxisLine] = useState(null);
-  const mvRef          = useRef(null);
-  const pointerDownPos = useRef(null);
-  const gizmoCenterRef = useRef(null);
-  const containerRef   = useRef(null);
-  const lastHitRef     = useRef(null);
-  const modelCenterRef = useRef(null);
-  const projRef        = useRef({ y:[0,-1], x:[0.866,0.501], z:[-0.866,0.501] });
+  const mvRef             = useRef(null);
+  const pointerDownPos    = useRef(null);
+  const gizmoCenterRef    = useRef(null);
+  const containerRef      = useRef(null);
+  const lastHitRef        = useRef(null);
+  const modelCenterRef    = useRef(null);
+  const initialCamRef     = useRef(null);
+  const projRef           = useRef({ y:[0,-1], x:[0.866,0.501], z:[-0.866,0.501] });
   const [proj,        setProj       ] = useState(projRef.current);
   const [hoveredAxis, setHoveredAxis] = useState(null);
 
   useEffect(() => { setSelected(false); }, [proxiedModelUrl]);
 
-  // Capture the model's world-space center right after each model loads.
-  // The initial getCameraTarget() equals the model's bounding-box center
-  // before any panning has occurred.
+  // Capture initial camera state + model center on load; seed transform at [0,0,0]/[1,1,1]
   useEffect(() => {
     modelCenterRef.current = null;
+    initialCamRef.current  = null;
+    onCameraChange?.(null);
     const mv = mvRef.current;
     if (!mv || !proxiedModelUrl) return;
     function onLoad() {
       requestAnimationFrame(() => {
         const t = mv.getCameraTarget?.();
+        const o = mv.getCameraOrbit?.();
         if (t) modelCenterRef.current = { x: t.x, y: t.y, z: t.z };
+        if (t && o) {
+          initialCamRef.current = { t, o };
+          onCameraChange?.({ pos: [0, 0, 0], rot: [0, 0, 0], scl: [1, 1, 1] });
+        }
       });
     }
     mv.addEventListener('load', onLoad);
     return () => mv.removeEventListener('load', onLoad);
+  }, [proxiedModelUrl]);
+
+  // Emit live transform deltas on every camera-change
+  useEffect(() => {
+    const mv = mvRef.current;
+    if (!mv || !proxiedModelUrl) return;
+    const r2 = v => Math.round(v * 100) / 100;
+    function onCamChange() {
+      const init = initialCamRef.current;
+      if (!init) return;
+      const t = mv.getCameraTarget?.();
+      const o = mv.getCameraOrbit?.();
+      if (!t || !o) return;
+      onCameraChange?.({
+        pos: [r2(t.x - init.t.x), r2(t.y - init.t.y), r2(t.z - init.t.z)],
+        rot: [
+          r2((o.phi   - init.o.phi)   * 180 / Math.PI),
+          r2((o.theta - init.o.theta) * 180 / Math.PI),
+          0,
+        ],
+        scl: [1, 1, 1],
+      });
+    }
+    mv.addEventListener('camera-change', onCamChange);
+    return () => mv.removeEventListener('camera-change', onCamChange);
   }, [proxiedModelUrl]);
 
   // Keep gizmo projected to model center: update on mount, resize, and camera-change
