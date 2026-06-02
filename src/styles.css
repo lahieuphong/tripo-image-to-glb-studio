@@ -1226,13 +1226,12 @@ a.nav-item {
   will-change: filter;
 }
 
-/* Silhouette outline on click — layer already exists so no viewport reset */
+/* Silhouette outline on click — thick edge + glow */
 .s-center-active model-viewer {
   filter:
-    drop-shadow(0 0 1px rgba(124, 92, 255, 1))
-    drop-shadow(0 0 3px rgba(124, 92, 255, 0.85))
-    drop-shadow(0 0 8px rgba(124, 92, 255, 0.55))
-    drop-shadow(0 0 18px rgba(124, 92, 255, 0.25));
+    drop-shadow(0 0 6px rgba(185, 155, 255, 1))
+    drop-shadow(0 0 10px rgba(150, 120, 255, 0.65))
+    drop-shadow(0 0 16px rgba(124, 92, 255, 0.35));
 }
 .s-center-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; color:var(--s-muted); }
 .s-center-empty strong { font-size:15px; color:var(--s-text); }
