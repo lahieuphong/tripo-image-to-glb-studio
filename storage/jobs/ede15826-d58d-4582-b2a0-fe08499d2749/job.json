@@ -1,0 +1,42 @@
+{
+  "taskId": "ede15826-d58d-4582-b2a0-fe08499d2749",
+  "modelVersion": "v3.1-20260211",
+  "normalized": {
+    "modelUrl": "https://tripo-data.rg1.data.tripo3d.com/tcli_f8c09e89df9a4a89bda72cc1d285b337/20260602/ede15826-d58d-4582-b2a0-fe08499d2749/tripo_base_model_ede15826-d58d-4582-b2a0-fe08499d2749.glb?Key-Pair-Id=K1676C64NMVM2J&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfZjhjMDllODlkZjlhNGE4OWJkYTcyY2MxZDI4NWIzMzcvMjAyNjA2MDIvZWRlMTU4MjYtZDU4ZC00NTgyLWIyYTAtZmUwODQ5OWQyNzQ5L3RyaXBvX2Jhc2VfbW9kZWxfZWRlMTU4MjYtZDU4ZC00NTgyLWIyYTAtZmUwODQ5OWQyNzQ5LmdsYiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc4MDQ0NDgwMH19fV19&Signature=YZL-1ym~GA3EvsRCEuAT-s6JPxDIq9vGLVF8amxom~PAi8ZrYcLFau~JUXh2eEJeNtTFv03TReADuaUus87KD3TLRAhugZySt3G91rFxTHL~6PqfOCYxr3KUQKeqeFrjD4Dl1--q7895-eWgeeBnucnTM0oCwAmZZ8LwvS2ZhkXrPrHNAN9B~R28zUk4N5Hf4pOzNkPex3MmS4HqICaoUBJylx0On1CM7OESQdoHKOc0s9~65rEQ~K-bPkkZwa4rVIsVcUxjA03s9J-d52aD1VqoD81E8K0PXUrsKeNM1Yhi-sDCO6rCwv9GCiHPcS1Nyvnx4Y5gDFXcGix3yvLHww__",
+    "pbrModelUrl": null,
+    "baseModelUrl": "https://tripo-data.rg1.data.tripo3d.com/tcli_f8c09e89df9a4a89bda72cc1d285b337/20260602/ede15826-d58d-4582-b2a0-fe08499d2749/tripo_base_model_ede15826-d58d-4582-b2a0-fe08499d2749.glb?Key-Pair-Id=K1676C64NMVM2J&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfZjhjMDllODlkZjlhNGE4OWJkYTcyY2MxZDI4NWIzMzcvMjAyNjA2MDIvZWRlMTU4MjYtZDU4ZC00NTgyLWIyYTAtZmUwODQ5OWQyNzQ5L3RyaXBvX2Jhc2VfbW9kZWxfZWRlMTU4MjYtZDU4ZC00NTgyLWIyYTAtZmUwODQ5OWQyNzQ5LmdsYiIsIkNvbmRpdGlvbiI6eyJEYXRlTGVzc1RoYW4iOnsiQVdTOkVwb2NoVGltZSI6MTc4MDQ0NDgwMH19fV19&Signature=YZL-1ym~GA3EvsRCEuAT-s6JPxDIq9vGLVF8amxom~PAi8ZrYcLFau~JUXh2eEJeNtTFv03TReADuaUus87KD3TLRAhugZySt3G91rFxTHL~6PqfOCYxr3KUQKeqeFrjD4Dl1--q7895-eWgeeBnucnTM0oCwAmZZ8LwvS2ZhkXrPrHNAN9B~R28zUk4N5Hf4pOzNkPex3MmS4HqICaoUBJylx0On1CM7OESQdoHKOc0s9~65rEQ~K-bPkkZwa4rVIsVcUxjA03s9J-d52aD1VqoD81E8K0PXUrsKeNM1Yhi-sDCO6rCwv9GCiHPcS1Nyvnx4Y5gDFXcGix3yvLHww__",
+    "renderedImageUrl": "https://tripo-data.rg1.data.tripo3d.com/tcli_f8c09e89df9a4a89bda72cc1d285b337/20260602/ede15826-d58d-4582-b2a0-fe08499d2749/legacy_mesh.webp?Key-Pair-Id=K1676C64NMVM2J&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly90cmlwby1kYXRhLnJnMS5kYXRhLnRyaXBvM2QuY29tL3RjbGlfZjhjMDllODlkZjlhNGE4OWJkYTcyY2MxZDI4NWIzMzcvMjAyNjA2MDIvZWRlMTU4MjYtZDU4ZC00NTgyLWIyYTAtZmUwODQ5OWQyNzQ5L2xlZ2FjeV9tZXNoLndlYnAiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE3ODA0NDQ4MDB9fX1dfQ__&Signature=XnZBVBG-Xn4jHcqOolZgeELOO87MlCddi47FgU-PTRpcGFNxhMAi-3C~faRSFHz3KcTALALdgZGJiMxzzEwkemM9qnP-UhCz4pHTyB56GBRWU7QEr67K5EjZEcJu8PBWYK8tDo-LzUZ5-WbWxHhljLGgW61Fi5lirGLAWgBcF3fCjd9eT2PxaHiXcSKlQVTFoQ5wPK6IjAWRl957SfsiDVBXdaMwwoPrEiREV5Iy-GyoaNDAdXTdASjsmRpIQpe72FYlYk8WZVru8I2HAvZqDTn26ZMrZr~cJMnEVlqzYEK-n~F4VKWgzmGeyDejrJKHvZQy6jRksgox9nAOTzUOjQ__",
+    "generatedImageUrl": null,
+    "renderCredits": null
+  },
+  "renderCredits": null,
+  "inputImageName": "ghe-nhua-lun.jpg",
+  "options": {
+    "modelVersion": "v3.1-20260211",
+    "texture": false,
+    "pbr": false,
+    "textureQuality": "standard",
+    "geometryQuality": "standard",
+    "textureAlignment": "original_image",
+    "orientation": "default",
+    "autoSize": false,
+    "enableImageAutofix": true,
+    "compressGeometry": false,
+    "faceLimit": "",
+    "modelSeed": "",
+    "textureSeed": ""
+  },
+  "logs": [
+    {
+      "id": "1780373069810-done",
+      "time": "11:04:29",
+      "message": "Hoàn tất. Bạn có thể preview và download GLB."
+    },
+    {
+      "id": "1780372933215-0.2717686491353114",
+      "time": "11:02:13",
+      "message": "Đã chọn ảnh: ghe-nhua-lun.jpg"
+    }
+  ],
+  "savedAt": "2026-06-02T04:04:29.827Z"
+}
