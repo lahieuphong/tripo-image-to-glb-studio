@@ -55,6 +55,8 @@ const RESET_ICON = (
   </svg>
 );
 
+const AXIS_COLORS = { X: '#f87171', Y: '#4ade80', Z: '#60a5fa' };
+
 function TfRow({ icon, values }) {
   return (
     <div className="s-tf-row">
@@ -62,7 +64,7 @@ function TfRow({ icon, values }) {
       <div className="s-tf-fields">
         {['X', 'Y', 'Z'].map((axis, i) => (
           <div className="s-tf-field" key={axis}>
-            <label>{axis}</label>
+            <label style={{ color: AXIS_COLORS[axis] }}>{axis}</label>
             <span>{values[i].toFixed(2)}</span>
           </div>
         ))}

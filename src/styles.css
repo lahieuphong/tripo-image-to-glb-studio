@@ -1277,6 +1277,31 @@ a.nav-item {
 .s-log-item span { font-size:11px; color:var(--s-dim); }
 .s-log-item p { margin:0; font-size:12px; color:var(--s-muted); line-height:1.4; }
 
+/* Axis orientation gizmo overlay */
+.s-gizmo {
+  position: absolute;
+  bottom: 18px;
+  left: 18px;
+  pointer-events: none;
+  z-index: 5;
+  opacity: 0.85;
+  filter: drop-shadow(0 2px 8px rgba(0,0,0,0.6));
+}
+
+/* Center transform gizmo — JS sets pixel position via getBoundingClientRect */
+.s-gizmo-center {
+  position: absolute;
+  top: 0; left: 0;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 10;
+  animation: s-gizmo-pop 180ms ease;
+}
+@keyframes s-gizmo-pop {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.75); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+
 /* Assets tab */
 .s-assets-body { gap:0; padding:0; }
 .s-asset-section { border-bottom:1px solid var(--s-brd); }
