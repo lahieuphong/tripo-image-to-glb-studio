@@ -236,6 +236,58 @@ function sanitizeFilename(name) {
   return String(name || 'tripo-model.glb').replace(/[^a-zA-Z0-9._-]/g, '_').slice(0, 100);
 }
 
+function jobDir(taskId) {
+  return path.join(JOBS_DIR, sanitizeFilename(taskId));
+}
+
+// Migrate flat-file jobs (old format) to per-job folder structure
+function migrateOldJobFiles() {
+  try {
+    for (const item of fs.readdirSync(JOBS_DIR)) {
+      if (!item.endsWith('.json')) continue;
+      const taskId = item.slice(0, -5);
+      const oldJson = path.join(JOBS_DIR, item);
+      const newDir = jobDir(taskId);
+      const newJson = path.join(newDir, 'job.json');
+      if (fs.existsSync(newJson)) { try { fs.unlinkSync(oldJson); } catch {} continue; }
+      try {
+        fs.mkdirSync(newDir, { recursive: true });
+        fs.renameSync(oldJson, newJson);
+        for (const ext of ['jpg', 'png', 'webp']) {
+          const oldIn = path.join(JOBS_DIR, `${taskId}_input.${ext}`);
+          if (fs.existsSync(oldIn)) fs.renameSync(oldIn, path.join(newDir, `input.${ext}`));
+          const oldRnd = path.join(JOBS_DIR, `${taskId}_render.${ext}`);
+          if (fs.existsSync(oldRnd)) fs.renameSync(oldRnd, path.join(newDir, `render.${ext}`));
+        }
+        const oldGlb = path.join(JOBS_DIR, `${taskId}_model.glb`);
+        if (fs.existsSync(oldGlb)) fs.renameSync(oldGlb, path.join(newDir, 'model.glb'));
+      } catch { /* non-critical */ }
+    }
+  } catch { /* non-critical */ }
+}
+migrateOldJobFiles();
+
+async function downloadJobAssets(modelUrl, renderedImageUrl, taskId) {
+  const jd = jobDir(taskId);
+  fs.mkdirSync(jd, { recursive: true });
+  if (modelUrl) {
+    try {
+      const r = await fetch(modelUrl);
+      if (r.ok) fs.writeFileSync(path.join(jd, 'model.glb'), Buffer.from(await r.arrayBuffer()));
+    } catch { /* non-critical */ }
+  }
+  if (renderedImageUrl) {
+    try {
+      const r = await fetch(renderedImageUrl);
+      if (r.ok) {
+        const ct = r.headers.get('content-type') || '';
+        const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
+        fs.writeFileSync(path.join(jd, `render.${ext}`), Buffer.from(await r.arrayBuffer()));
+      }
+    } catch { /* non-critical */ }
+  }
+}
+
 function isAllowedAssetUrl(rawUrl) {
   if (process.env.ALLOW_ANY_ASSET_PROXY === 'true') return true;
   try {
@@ -290,14 +342,13 @@ app.post('/api/generate', upload.single('image'), async (req, res, next) => {
     const payload = buildImageToModelPayload(req.file, uploaded.token, req.body || {});
     const created = await createTripoTask(payload);
 
-    // Save input image for job history (non-critical)
+    // Save input image inside per-job folder (non-critical)
     try {
       const ext = req.file.mimetype === 'image/webp' ? 'webp'
         : req.file.mimetype === 'image/png' ? 'png' : 'jpg';
-      fs.writeFileSync(
-        path.join(JOBS_DIR, `${sanitizeFilename(created.taskId)}_input.${ext}`),
-        req.file.buffer
-      );
+      const jd = jobDir(created.taskId);
+      fs.mkdirSync(jd, { recursive: true });
+      fs.writeFileSync(path.join(jd, `input.${ext}`), req.file.buffer);
     } catch { /* non-critical */ }
 
     res.json({
@@ -357,7 +408,7 @@ app.get('/api/asset', async (req, res, next) => {
 
 app.post('/api/jobs', (req, res, next) => {
   try {
-    const { taskId, modelVersion, normalized, renderCredits, inputImageName } = req.body || {};
+    const { taskId, modelVersion, normalized, renderCredits, inputImageName, options, logs } = req.body || {};
     if (!taskId || typeof taskId !== 'string') {
       return res.status(400).json({ error: 'Thiếu taskId hợp lệ.' });
     }
@@ -367,13 +418,15 @@ app.post('/api/jobs', (req, res, next) => {
       normalized: normalized || {},
       renderCredits: renderCredits ?? null,
       inputImageName: inputImageName || null,
+      options: options || null,
+      logs: Array.isArray(logs) ? logs.slice(0, 50) : [],
       savedAt: new Date().toISOString()
     };
-    fs.writeFileSync(
-      path.join(JOBS_DIR, `${sanitizeFilename(taskId)}.json`),
-      JSON.stringify(job, null, 2)
-    );
+    const jd = jobDir(taskId);
+    fs.mkdirSync(jd, { recursive: true });
+    fs.writeFileSync(path.join(jd, 'job.json'), JSON.stringify(job, null, 2));
     res.json({ ok: true, taskId });
+    downloadJobAssets(normalized?.modelUrl, normalized?.renderedImageUrl, taskId).catch(() => {});
   } catch (error) {
     next(error);
   }
@@ -381,10 +434,20 @@ app.post('/api/jobs', (req, res, next) => {
 
 app.get('/api/jobs', (_req, res, next) => {
   try {
-    const jobs = fs.readdirSync(JOBS_DIR)
-      .filter((f) => f.endsWith('.json'))
-      .map((f) => {
-        try { return JSON.parse(fs.readFileSync(path.join(JOBS_DIR, f), 'utf8')); }
+    const jobs = fs.readdirSync(JOBS_DIR, { withFileTypes: true })
+      .filter((d) => d.isDirectory())
+      .map((d) => {
+        try {
+          const jd = path.join(JOBS_DIR, d.name);
+          const jsonPath = path.join(jd, 'job.json');
+          if (!fs.existsSync(jsonPath)) return null;
+          const job = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+          job.localModelAvailable = fs.existsSync(path.join(jd, 'model.glb'));
+          job.localRenderAvailable = ['jpg', 'png', 'webp'].some(
+            (ext) => fs.existsSync(path.join(jd, `render.${ext}`))
+          );
+          return job;
+        }
         catch { return null; }
       })
       .filter(Boolean)
@@ -397,11 +460,17 @@ app.get('/api/jobs', (_req, res, next) => {
 
 app.get('/api/jobs/:taskId', (req, res, next) => {
   try {
-    const filepath = path.join(JOBS_DIR, `${sanitizeFilename(req.params.taskId)}.json`);
+    const jd = jobDir(req.params.taskId);
+    const filepath = path.join(jd, 'job.json');
     if (!fs.existsSync(filepath)) {
       return res.status(404).json({ error: 'Job không tồn tại.' });
     }
-    res.json(JSON.parse(fs.readFileSync(filepath, 'utf8')));
+    const job = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    job.localModelAvailable = fs.existsSync(path.join(jd, 'model.glb'));
+    job.localRenderAvailable = ['jpg', 'png', 'webp'].some(
+      (ext) => fs.existsSync(path.join(jd, `render.${ext}`))
+    );
+    res.json(job);
   } catch (error) {
     next(error);
   }
@@ -409,9 +478,62 @@ app.get('/api/jobs/:taskId', (req, res, next) => {
 
 app.get('/api/jobs/:taskId/input', (req, res, next) => {
   try {
-    const base = sanitizeFilename(req.params.taskId);
+    const jd = jobDir(req.params.taskId);
     for (const [ext, mime] of [['jpg', 'image/jpeg'], ['png', 'image/png'], ['webp', 'image/webp']]) {
-      const fp = path.join(JOBS_DIR, `${base}_input.${ext}`);
+      const fp = path.join(jd, `input.${ext}`);
+      if (fs.existsSync(fp)) {
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(fs.readFileSync(fp));
+      }
+    }
+    res.status(404).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/jobs/:taskId/model', (req, res, next) => {
+  try {
+    const fp = path.join(jobDir(req.params.taskId), 'model.glb');
+    if (!fs.existsSync(fp)) return res.status(404).end();
+    res.setHeader('Content-Type', 'model/gltf-binary');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    if (req.query.download === '1') {
+      const filename = sanitizeFilename(req.query.filename || 'tripo-output.glb');
+      res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    }
+    return res.send(fs.readFileSync(fp));
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.post('/api/jobs/:taskId/fetch-assets', async (req, res, next) => {
+  try {
+    const jd = jobDir(req.params.taskId);
+    const filepath = path.join(jd, 'job.json');
+    if (!fs.existsSync(filepath)) {
+      return res.status(404).json({ error: 'Job không tồn tại.' });
+    }
+    const job = JSON.parse(fs.readFileSync(filepath, 'utf8'));
+    await downloadJobAssets(job.normalized?.modelUrl, job.normalized?.renderedImageUrl, job.taskId);
+    const localModelAvailable = fs.existsSync(path.join(jd, 'model.glb'));
+    const localRenderAvailable = ['jpg', 'png', 'webp'].some(
+      (ext) => fs.existsSync(path.join(jd, `render.${ext}`))
+    );
+    res.json({ ok: true, localModelAvailable, localRenderAvailable });
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/jobs/:taskId/render', (req, res, next) => {
+  try {
+    const jd = jobDir(req.params.taskId);
+    for (const [ext, mime] of [['jpg', 'image/jpeg'], ['png', 'image/png'], ['webp', 'image/webp']]) {
+      const fp = path.join(jd, `render.${ext}`);
       if (fs.existsSync(fp)) {
         res.setHeader('Content-Type', mime);
         res.setHeader('Cache-Control', 'public, max-age=86400');

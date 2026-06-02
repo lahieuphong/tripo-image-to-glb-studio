@@ -32,9 +32,12 @@ export default function RightPanel({
             )}
           </div>
 
-          {normalized?.renderedImageUrl && (
+          {(normalized?.localRenderSrc || normalized?.renderedImageUrl) && (
             <div className="s-rp-thumb">
-              <img src={`/api/asset?url=${encodeURIComponent(normalized.renderedImageUrl)}`} alt="render" />
+              <img
+                src={normalized.localRenderSrc || `/api/asset?url=${encodeURIComponent(normalized.renderedImageUrl)}`}
+                alt="render"
+              />
             </div>
           )}
 

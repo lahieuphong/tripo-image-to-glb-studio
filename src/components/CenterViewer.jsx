@@ -1,8 +1,8 @@
 import { statusText } from '../utils.js';
 
 export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress }) {
-  const poster = normalized?.renderedImageUrl
-    ? `/api/asset?url=${encodeURIComponent(normalized.renderedImageUrl)}` : '';
+  const poster = normalized?.localRenderSrc
+    || (normalized?.renderedImageUrl ? `/api/asset?url=${encodeURIComponent(normalized.renderedImageUrl)}` : '');
 
   return (
     <div className="s-center">

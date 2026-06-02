@@ -45,10 +45,11 @@ export default function App() {
   );
 
   const modelUrl = normalized?.modelUrl || '';
-  const proxiedModelUrl = modelUrl ? `/api/asset?url=${encodeURIComponent(modelUrl)}` : '';
-  const downloadUrl = modelUrl
-    ? `/api/asset?download=1&filename=${encodeURIComponent('tripo-output.glb')}&url=${encodeURIComponent(modelUrl)}`
-    : '';
+  const proxiedModelUrl = normalized?.localModelSrc
+    || (modelUrl ? `/api/asset?url=${encodeURIComponent(modelUrl)}` : '');
+  const downloadUrl = normalized?.localModelSrc
+    ? `${normalized.localModelSrc}?download=1&filename=tripo-output.glb`
+    : (modelUrl ? `/api/asset?download=1&filename=${encodeURIComponent('tripo-output.glb')}&url=${encodeURIComponent(modelUrl)}` : '');
   const progress = task?.progress ?? 0;
   const currentStatus = task?.status || (loading ? 'queued' : 'idle');
   const isCreditError = isCreditErrorMessage(error);
@@ -77,8 +78,14 @@ export default function App() {
         if (!job?.taskId) return;
         setTaskId(job.taskId);
         setTask({ status: 'success', progress: 100 });
-        setNormalized(job.normalized || {});
+        const norm = { ...(job.normalized || {}) };
+        if (job.localModelAvailable) norm.localModelSrc = `/api/jobs/${job.taskId}/model`;
+        if (job.localRenderAvailable) norm.localRenderSrc = `/api/jobs/${job.taskId}/render`;
+        setNormalized(norm);
         setImagePreview(`/api/jobs/${job.taskId}/input`);
+        if (job.options) setOptions((prev) => ({ ...prev, ...job.options }));
+        const restoredLog = { id: `r-${Date.now()}`, time: new Date().toLocaleTimeString(), message: `Khôi phục từ lịch sử (${new Date(job.savedAt).toLocaleString('vi-VN')})` };
+        setLogs([restoredLog, ...(Array.isArray(job.logs) ? job.logs : [])].slice(0, 8));
       })
       .catch(() => {});
   }, []);
@@ -177,6 +184,8 @@ export default function App() {
 
       if (FINAL_STATUSES.has(parsed.status)) {
         if (parsed.status === 'success') {
+          const doneLog = { id: `${Date.now()}-done`, time: new Date().toLocaleTimeString(), message: 'Hoàn tất. Bạn có thể preview và download GLB.' };
+          const finalLogs = [doneLog, ...logs].slice(0, 8);
           addLog('Hoàn tất. Bạn có thể preview và download GLB.');
           window.history.pushState({}, '', `/jobs?id=${encodeURIComponent(id)}`);
           fetch('/api/jobs', {
@@ -188,6 +197,8 @@ export default function App() {
               normalized: parsed.normalized,
               renderCredits: parsed.normalized?.renderCredits ?? null,
               inputImageName: imageFile?.name ?? null,
+              options,
+              logs: finalLogs,
             })
           }).catch(() => {});
           refreshBalance({ force: true });

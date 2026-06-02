@@ -7,14 +7,16 @@ function proxyUrl(url) {
 function JobCard({ job, onSelect }) {
   const [inputFailed, setInputFailed] = useState(false);
   const [renderFailed, setRenderFailed] = useState(false);
-  const renderedThumb = job.normalized?.renderedImageUrl;
+  const renderThumbSrc = job.localRenderAvailable
+    ? `/api/jobs/${job.taskId}/render`
+    : (job.normalized?.renderedImageUrl ? proxyUrl(job.normalized.renderedImageUrl) : '');
   return (
     <button className="job-card" onClick={() => onSelect(job.taskId)}>
       <div className="job-thumb">
         {!inputFailed ? (
           <img src={`/api/jobs/${job.taskId}/input`} alt="input" loading="lazy" onError={() => setInputFailed(true)} />
-        ) : !renderFailed && renderedThumb ? (
-          <img src={proxyUrl(renderedThumb)} alt="render" loading="lazy" onError={() => setRenderFailed(true)} />
+        ) : !renderFailed && renderThumbSrc ? (
+          <img src={renderThumbSrc} alt="render" loading="lazy" onError={() => setRenderFailed(true)} />
         ) : (
           <div className="job-thumb-empty">3D</div>
         )}
@@ -52,11 +54,16 @@ function JobDetail({ taskId }) {
   if (loading) return <div className="jobs-loading">Đang tải…</div>;
   if (err || !job) return <div className="jobs-empty"><p>{err || 'Không tìm thấy job.'}</p></div>;
 
-  const modelUrl = job.normalized?.modelUrl || '';
-  const proxiedModelUrl = proxyUrl(modelUrl);
-  const downloadUrl = modelUrl
-    ? `/api/asset?download=1&filename=${encodeURIComponent('tripo-output.glb')}&url=${encodeURIComponent(modelUrl)}`
-    : '';
+  const remoteModelUrl = job.normalized?.modelUrl || '';
+  const modelSrc = job.localModelAvailable
+    ? `/api/jobs/${job.taskId}/model`
+    : (remoteModelUrl ? proxyUrl(remoteModelUrl) : '');
+  const downloadUrl = job.localModelAvailable
+    ? `/api/jobs/${job.taskId}/model?download=1&filename=tripo-output.glb`
+    : (remoteModelUrl ? `/api/asset?download=1&filename=${encodeURIComponent('tripo-output.glb')}&url=${encodeURIComponent(remoteModelUrl)}` : '');
+  const renderedSrc = job.localRenderAvailable
+    ? `/api/jobs/${job.taskId}/render`
+    : (job.normalized?.renderedImageUrl ? proxyUrl(job.normalized.renderedImageUrl) : '');
 
   return (
     <div className="job-detail">
@@ -76,9 +83,9 @@ function JobDetail({ taskId }) {
                 alt={job.inputImageName || 'Input'}
                 onError={() => setInputImgFailed(true)}
               />
-            ) : job.normalized?.renderedImageUrl ? (
+            ) : renderedSrc ? (
               <img
-                src={proxyUrl(job.normalized.renderedImageUrl)}
+                src={renderedSrc}
                 alt="Render"
                 onError={(e) => { e.target.closest('.job-input-wrap').style.display = 'none'; }}
               />
@@ -95,10 +102,10 @@ function JobDetail({ taskId }) {
         <div className="job-section">
           <p className="eyebrow" style={{ marginBottom: 10 }}>3D Viewer (Output)</p>
           <div className="viewer-shell job-viewer-shell">
-            {proxiedModelUrl ? (
+            {modelSrc ? (
               <model-viewer
-                src={proxiedModelUrl}
-                poster={proxyUrl(job.normalized?.renderedImageUrl)}
+                src={modelSrc}
+                poster={renderedSrc}
                 camera-controls
                 auto-rotate
                 shadow-intensity="1"
@@ -154,8 +161,8 @@ function JobDetail({ taskId }) {
         >
           Download GLB
         </a>
-        {modelUrl && (
-          <a className="ghost-button" href={modelUrl} target="_blank" rel="noreferrer">
+        {remoteModelUrl && (
+          <a className="ghost-button" href={remoteModelUrl} target="_blank" rel="noreferrer">
             Mở URL gốc
           </a>
         )}
