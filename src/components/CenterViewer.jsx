@@ -1,15 +1,17 @@
 import { statusText } from '../utils.js';
 
 export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress }) {
-  const poster = normalized?.localRenderSrc
-    || (normalized?.renderedImageUrl ? `/api/asset?url=${encodeURIComponent(normalized.renderedImageUrl)}` : '');
-
   return (
     <div className="s-center">
       {proxiedModelUrl ? (
-        <model-viewer src={proxiedModelUrl} poster={poster}
+        <model-viewer src={proxiedModelUrl}
           camera-controls auto-rotate shadow-intensity="1"
-          environment-image="neutral" exposure="1" ar />
+          environment-image="neutral" exposure="1" ar>
+          <div slot="poster" className="s-mv-poster">
+            <div className="s-mv-spinner" />
+            <span className="s-mv-hint">Đang tải model 3D…</span>
+          </div>
+        </model-viewer>
       ) : (
         <div className="s-center-empty">
           {loading ? (

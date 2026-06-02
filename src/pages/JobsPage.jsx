@@ -105,14 +105,18 @@ function JobDetail({ taskId }) {
             {modelSrc ? (
               <model-viewer
                 src={modelSrc}
-                poster={renderedSrc}
                 camera-controls
                 auto-rotate
                 shadow-intensity="1"
                 environment-image="neutral"
                 exposure="1"
                 ar
-              />
+              >
+                <div slot="poster" className="s-mv-poster">
+                  <div className="s-mv-spinner" />
+                  <span className="s-mv-hint">Đang tải model 3D…</span>
+                </div>
+              </model-viewer>
             ) : (
               <div className="empty-viewer">
                 <div className="orb" />
