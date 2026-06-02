@@ -11,7 +11,6 @@ export default function IconSidebar() {
   const p = window.location.pathname;
   return (
     <aside className="s-icon-bar">
-      <div className="s-ic-logo">3D</div>
       <nav className="s-ic-nav">
         <IcBtn href="/" label="Image" active={p !== '/jobs'}>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
