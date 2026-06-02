@@ -107,7 +107,7 @@ function JobDetail({ taskId }) {
                 src={modelSrc}
                 camera-controls
                 auto-rotate
-                shadow-intensity="1"
+                shadow-intensity="0"
                 environment-image="neutral"
                 exposure="1"
                 ar

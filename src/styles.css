@@ -1216,8 +1216,24 @@ a.nav-item {
   flex:1; background:var(--s-bg); min-width:0; position:relative; overflow:hidden;
   background-image:linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);
   background-size:40px 40px;
+  transition: box-shadow 400ms ease;
 }
-.s-center model-viewer { width:100%; height:100%; min-height:0 !important; --poster-color:transparent; }
+
+/* Pre-allocate GPU compositing layer — prevents position shift when filter is applied on click */
+.s-center model-viewer {
+  width:100%; height:100%; min-height:0 !important; --poster-color:transparent;
+  filter: brightness(1); /* null filter: no visual effect, but compositing layer always exists */
+  will-change: filter;
+}
+
+/* Silhouette outline on click — layer already exists so no viewport reset */
+.s-center-active model-viewer {
+  filter:
+    drop-shadow(0 0 1px rgba(124, 92, 255, 1))
+    drop-shadow(0 0 3px rgba(124, 92, 255, 0.85))
+    drop-shadow(0 0 8px rgba(124, 92, 255, 0.55))
+    drop-shadow(0 0 18px rgba(124, 92, 255, 0.25));
+}
 .s-center-empty { height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; color:var(--s-muted); }
 .s-center-empty strong { font-size:15px; color:var(--s-text); }
 .s-center-empty span { font-size:13px; max-width:260px; line-height:1.5; }

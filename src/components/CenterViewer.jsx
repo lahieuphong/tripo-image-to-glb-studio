@@ -1,11 +1,30 @@
+import { useEffect, useRef, useState } from 'react';
 import { statusText } from '../utils.js';
 
 export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress }) {
+  const [selected, setSelected] = useState(false);
+  const containerRef = useRef(null);
+
+  useEffect(() => { setSelected(false); }, [proxiedModelUrl]);
+
+  useEffect(() => {
+    if (!selected) return;
+    function onOutside(e) {
+      if (!containerRef.current?.contains(e.target)) setSelected(false);
+    }
+    document.addEventListener('pointerdown', onOutside);
+    return () => document.removeEventListener('pointerdown', onOutside);
+  }, [selected]);
+
   return (
-    <div className="s-center">
+    <div
+      ref={containerRef}
+      className={`s-center${proxiedModelUrl && selected ? ' s-center-active' : ''}`}
+      onClick={() => { if (proxiedModelUrl) setSelected((s) => !s); }}
+    >
       {proxiedModelUrl ? (
         <model-viewer src={proxiedModelUrl}
-          camera-controls auto-rotate shadow-intensity="1"
+          camera-controls auto-rotate shadow-intensity="0"
           environment-image="neutral" exposure="1" ar>
           <div slot="poster" className="s-mv-poster">
             <div className="s-mv-spinner" />
