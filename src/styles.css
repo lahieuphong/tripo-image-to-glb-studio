@@ -1219,15 +1219,20 @@ a.nav-item {
   transition: box-shadow 400ms ease;
 }
 
-/* Pre-allocate GPU compositing layer — prevents position shift when filter is applied on click */
+/* model-viewer fills wrapper — no filter here so camera never resets on click */
 .s-center model-viewer {
   width:100%; height:100%; min-height:0 !important; --poster-color:transparent;
-  filter: brightness(1); /* null filter: no visual effect, but compositing layer always exists */
+}
+
+/* Filter lives on the wrapper, not model-viewer, so model-viewer CSS stays constant */
+.s-mv-wrapper {
+  width:100%; height:100%;
+  filter: brightness(1); /* null filter: pre-allocates GPU compositing layer */
   will-change: filter;
 }
 
 /* Silhouette outline on click — thick edge + glow */
-.s-center-active model-viewer {
+.s-center-active .s-mv-wrapper {
   filter:
     drop-shadow(0 0 6px rgba(185, 155, 255, 1))
     drop-shadow(0 0 10px rgba(150, 120, 255, 0.65))
