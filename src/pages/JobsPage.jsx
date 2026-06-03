@@ -205,6 +205,7 @@ export default function JobsPage() {
           <a className="nav-item" href="/">Generate</a>
           <button className="nav-item" disabled>Assets</button>
           <a className="nav-item active" href="/jobs">Jobs</a>
+          <a className="nav-item" href="/pricing">Pricing</a>
           <button className="nav-item" disabled>Settings</button>
         </nav>
 

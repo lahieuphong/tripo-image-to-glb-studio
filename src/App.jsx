@@ -168,6 +168,11 @@ export default function App() {
     addLog(`Đã chọn ảnh: ${file.name}`);
   }
 
+  function clearFile() {
+    setImageFile(null);
+    setImagePreview('');
+  }
+
   async function generate() {
     if (!imageFile) { setError('Hãy chọn một ảnh trước.'); return; }
 
@@ -357,7 +362,7 @@ export default function App() {
           <ControlPanel
             options={options} updateOption={updateOption} selectedModel={selectedModel}
             imagePreview={imagePreview} dragOver={dragOver} setDragOver={setDragOver}
-            setFile={setFile} onDrop={onDrop} error={error} loading={loading}
+            setFile={setFile} clearFile={clearFile} onDrop={onDrop} error={error} loading={loading}
             imageFile={imageFile} onGenerate={generate}
             multiImages={multiImages} multiPreviews={multiPreviews}
             setMultiFile={setMultiFile} onGenerateMulti={generateMultiView}

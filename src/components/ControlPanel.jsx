@@ -125,18 +125,31 @@ const PERSON_ICON = (
   </svg>
 );
 
-const CROWN_ICON = (
-  <svg width="11" height="9" viewBox="0 0 11 9" fill="#f59e0b" aria-hidden="true">
-    <path d="M0.5 8.5L2 3.5L4.5 6.5L5.5 0.5L6.5 6.5L9 3.5L10.5 8.5H0.5Z"/>
-  </svg>
-);
-
 const MV_VIEWS = [
   { key: 'front', label: 'Trước',    required: true  },
   { key: 'left',  label: 'Bên trái', required: false },
   { key: 'right', label: 'Phải',     required: false },
   { key: 'back',  label: 'Mặt sau',  required: false },
 ];
+
+function estimateGenerationCredits(options) {
+  const modelVersion = String(options?.modelVersion || '');
+  const withTexture = Boolean(options?.texture || options?.pbr);
+
+  if (modelVersion.startsWith('Turbo')) return null;
+
+  if (modelVersion.startsWith('P1')) {
+    return withTexture ? 50 : 40;
+  }
+
+  let credits = withTexture ? 30 : 20;
+  if (withTexture && options?.textureQuality === 'detailed') credits += 10;
+  return credits;
+}
+
+function creditLabel(credits) {
+  return credits == null ? 'credit chưa rõ' : `${credits} credits`;
+}
 
 function MultiviewSlot({ viewKey, label, required, preview, onFile }) {
   const [drag, setDrag] = useState(false);
@@ -165,7 +178,7 @@ function MultiviewSlot({ viewKey, label, required, preview, onFile }) {
       />
 
       {preview
-        ? <img src={preview} alt={label} />
+        ? <img className="s-mv4-preview" src={preview} alt={label} />
         : (
           <div className="s-mv4-body">
             <span className="s-mv4-icon">{PERSON_ICON}</span>
@@ -175,18 +188,16 @@ function MultiviewSlot({ viewKey, label, required, preview, onFile }) {
         )
       }
 
-      {required && <div className="s-mv4-badge">{CROWN_ICON}</div>}
-
       {preview && (
         <button
           type="button"
           className="s-mv4-clear"
           title="Xóa ảnh"
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFile(viewKey, null); }}
-        >×</button>
+        >
+          <img className="s-mv4-clear-icon" src="/icons/close.svg" alt="" aria-hidden="true" />
+        </button>
       )}
-
-      {!preview && <div className="s-mv4-view-tag">{label}</div>}
     </label>
   );
 }
@@ -294,7 +305,7 @@ function SharedSettings({ options, updateOption, selectedModel }) {
 
 export default function ControlPanel({
   options, updateOption, selectedModel,
-  imagePreview, dragOver, setDragOver, setFile, onDrop,
+  imagePreview, dragOver, setDragOver, setFile, clearFile, onDrop,
   error, loading, imageFile, onGenerate,
   multiImages, multiPreviews, setMultiFile, onGenerateMulti,
 }) {
@@ -302,6 +313,8 @@ export default function ControlPanel({
 
   const isSingleReady = Boolean(imageFile);
   const isMultiReady  = Boolean(multiImages?.front);
+  const estimatedCredits = estimateGenerationCredits(options);
+  const currentCreditLabel = creditLabel(estimatedCredits);
 
   return (
     <aside className="s-left-panel">
@@ -338,7 +351,17 @@ export default function ControlPanel({
           >
             <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0])} />
             {imagePreview ? (
-              <img src={imagePreview} alt="preview" />
+              <>
+                <img src={imagePreview} alt="preview" />
+                <button
+                  type="button"
+                  className="s-dz-clear"
+                  title="Xóa ảnh"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); clearFile?.(); }}
+                >
+                  <img className="s-dz-clear-icon" src="/icons/close.svg" alt="" aria-hidden="true" />
+                </button>
+              </>
             ) : (
               <div className="s-dz-empty">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
@@ -363,11 +386,11 @@ export default function ControlPanel({
       <div className="s-lp-foot">
         {mode === 'single' ? (
           <button className="s-gen-btn" onClick={onGenerate} disabled={loading || !isSingleReady}>
-            {loading ? 'Đang generate…' : 'Generate GLB'}
+            {loading ? `Đang generate… • ${currentCreditLabel}` : `Generate GLB • ${currentCreditLabel}`}
           </button>
         ) : (
           <button className="s-gen-btn s-gen-btn--multi" onClick={onGenerateMulti} disabled={loading || !isMultiReady}>
-            {loading ? 'Đang generate…' : 'Generate GLB  ·  4 ảnh'}
+            {loading ? `Đang generate… • ${currentCreditLabel}` : `Generate GLB • 4 ảnh • ${currentCreditLabel}`}
           </button>
         )}
       </div>

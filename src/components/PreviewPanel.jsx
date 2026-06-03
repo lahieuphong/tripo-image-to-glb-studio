@@ -84,7 +84,7 @@ export default function PreviewPanel({
       </div>
 
       <div className="logs">
-        <div className="logs-title">Activity</div>
+        <div className="logs-title">Hoạt động</div>
         {logs.length === 0 ? (
           <p className="hint">Chưa có log.</p>
         ) : (

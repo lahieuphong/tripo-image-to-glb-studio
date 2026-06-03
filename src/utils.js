@@ -15,6 +15,7 @@ export function outputFromTaskResponse(taskResponse) {
 
 export function statusText(status) {
   const map = {
+    idle:      'Chưa bắt đầu',
     queued:    'Đang xếp hàng',
     running:   'Đang dựng model',
     success:   'Hoàn tất',

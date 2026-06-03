@@ -12,7 +12,7 @@ export default function RightPanel({
     <aside className="s-right-panel">
       <div className="s-rp-tabs">
         <button className={`s-rp-tab${tab==='result'?' active':''}`} onClick={() => setTab('result')}>Kết quả</button>
-        <button className={`s-rp-tab${tab==='log'?' active':''}`} onClick={() => setTab('log')}>Activity</button>
+        <button className={`s-rp-tab${tab==='log'?' active':''}`} onClick={() => setTab('log')}>Hoạt động</button>
         <button className={`s-rp-tab${tab==='assets'?' active':''}`} onClick={() => setTab('assets')}>Tài sản</button>
       </div>
 
