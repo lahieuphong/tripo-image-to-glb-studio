@@ -27,6 +27,10 @@ export default function App() {
   const [transform, setTransform] = useState(null);
   const [viewResetToken, setViewResetToken] = useState(0);
 
+  const EMPTY_MULTI = { front: null, left: null, right: null, back: null };
+  const [multiImages,   setMultiImages  ] = useState(EMPTY_MULTI);
+  const [multiPreviews, setMultiPreviews] = useState(EMPTY_MULTI);
+
   const [options, setOptions] = useState({
     modelVersion: 'v3.1-20260211',
     texture: true,
@@ -114,6 +118,31 @@ export default function App() {
       if (key === 'pbr' && value === true) next.texture = true;
       if (key === 'texture' && value === false) next.pbr = false;
       return next;
+    });
+  }
+
+  function setMultiFile(view, file) {
+    if (!file) {
+      setMultiImages(prev => ({ ...prev, [view]: null }));
+      setMultiPreviews(prev => {
+        if (prev[view]) URL.revokeObjectURL(prev[view]);
+        return { ...prev, [view]: null };
+      });
+      return;
+    }
+    if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
+      setError('Chỉ hỗ trợ ảnh PNG, JPG/JPEG hoặc WEBP.');
+      return;
+    }
+    if (file.size > 200 * 1024 * 1024) {
+      setError('File quá lớn. Giới hạn upload là 200MB.');
+      return;
+    }
+    setError('');
+    setMultiImages(prev => ({ ...prev, [view]: file }));
+    setMultiPreviews(prev => {
+      if (prev[view]) URL.revokeObjectURL(prev[view]);
+      return { ...prev, [view]: URL.createObjectURL(file) };
     });
   }
 
@@ -221,6 +250,97 @@ export default function App() {
     throw new Error('Polling quá lâu. Bạn có thể copy task_id và kiểm tra lại sau.');
   }
 
+  async function generateMultiView() {
+    if (!multiImages.front) { setError('Cần ít nhất ảnh mặt trước (Trước).'); return; }
+
+    generatingRef.current = true;
+    setLoading(true);
+    setError('');
+    setTask(null);
+    setNormalized({});
+    setTaskId('');
+    activeTaskRef.current = '';
+
+    try {
+      const form = new FormData();
+      for (const [view, file] of Object.entries(multiImages)) {
+        if (file) form.append(view, file);
+      }
+      Object.entries(options).forEach(([k, v]) => form.append(k, String(v)));
+
+      addLog('Đang upload ảnh 4-góc lên Tripo...');
+      const createRes = await fetch('/api/generate-multiview', { method: 'POST', body: form });
+      const created = await createRes.json();
+      if (!createRes.ok) throw new Error(created.error || 'Không tạo được task.');
+
+      setTaskId(created.taskId);
+      activeTaskRef.current = created.taskId;
+      addLog(`Task multiview đã tạo: ${created.taskId}`);
+      await pollTaskMulti(created.taskId);
+    } catch (err) {
+      setError(err.message || 'Có lỗi xảy ra.');
+      addLog(`Lỗi: ${err.message || err}`);
+    } finally {
+      generatingRef.current = false;
+      setLoading(false);
+    }
+  }
+
+  async function pollTaskMulti(id) {
+    for (let attempt = 0; attempt < 240; attempt += 1) {
+      if (activeTaskRef.current !== id) return;
+
+      const res = await fetch(`/api/task/${encodeURIComponent(id)}`);
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Không đọc được trạng thái task.');
+
+      const parsed = outputFromTaskResponse(data);
+      setTask(parsed.task);
+      setNormalized(parsed.normalized);
+
+      if (attempt === 0 || attempt % 5 === 0) {
+        addLog(`${parsed.status === 'running' ? 'Đang dựng model' : parsed.status} — ${parsed.progress || 0}%`);
+      }
+
+      if (FINAL_STATUSES.has(parsed.status)) {
+        if (parsed.status === 'success') {
+          const doneLog = { id: `${Date.now()}-done`, time: new Date().toLocaleTimeString(), message: 'Hoàn tất. Bạn có thể preview và download GLB.' };
+          const finalLogs = [doneLog, ...logs].slice(0, 8);
+          addLog('Hoàn tất. Bạn có thể preview và download GLB.');
+          window.history.pushState({}, '', `/jobs?id=${encodeURIComponent(id)}`);
+          fetch('/api/jobs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              taskId: id,
+              mode: 'multiview',
+              modelVersion: options.modelVersion,
+              normalized: parsed.normalized,
+              renderCredits: parsed.normalized?.renderCredits ?? null,
+              inputImageName: multiImages.front?.name ?? null,
+              inputImages: {
+                front: multiImages.front?.name ?? null,
+                left:  multiImages.left?.name  ?? null,
+                right: multiImages.right?.name ?? null,
+                back:  multiImages.back?.name  ?? null,
+              },
+              options,
+              logs: finalLogs,
+            })
+          }).catch(() => {});
+          refreshBalance({ force: true });
+        } else {
+          throw new Error(`Task kết thúc với trạng thái: ${parsed.status}`);
+        }
+        return;
+      }
+
+      await wait(2500);
+    }
+
+    throw new Error('Polling quá lâu. Bạn có thể copy task_id và kiểm tra lại sau.');
+  }
+
   function onDrop(event) {
     event.preventDefault();
     setDragOver(false);
@@ -239,6 +359,8 @@ export default function App() {
             imagePreview={imagePreview} dragOver={dragOver} setDragOver={setDragOver}
             setFile={setFile} onDrop={onDrop} error={error} loading={loading}
             imageFile={imageFile} onGenerate={generate}
+            multiImages={multiImages} multiPreviews={multiPreviews}
+            setMultiFile={setMultiFile} onGenerateMulti={generateMultiView}
           />
           <CenterViewer
             proxiedModelUrl={proxiedModelUrl} normalized={normalized}

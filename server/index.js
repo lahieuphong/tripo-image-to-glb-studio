@@ -192,6 +192,47 @@ function buildImageToModelPayload(file, token, body) {
   return payload;
 }
 
+function buildMultiviewPayload(tokens, body) {
+  const modelVersion = String(body.modelVersion || 'v3.1-20260211');
+  const texture = asBool(body.texture, true);
+  const pbr = asBool(body.pbr, true);
+  const faceLimit = asOptionalInt(body.faceLimit);
+  const modelSeed = asOptionalInt(body.modelSeed);
+  const textureSeed = asOptionalInt(body.textureSeed);
+
+  const filesArray = ['front', 'left', 'right', 'back']
+    .filter(view => tokens[view])
+    .map(view => ({ type: view, file_token: tokens[view] }));
+
+  const payload = {
+    type: 'multiview_to_model',
+    model_version: modelVersion,
+    files: filesArray,
+    texture,
+    pbr,
+    enable_image_autofix: asBool(body.enableImageAutofix, false)
+  };
+
+  if (faceLimit) payload.face_limit = faceLimit;
+  if (modelSeed) payload.model_seed = modelSeed;
+  if (textureSeed) payload.texture_seed = textureSeed;
+
+  if (texture || pbr) {
+    const textureQuality = body.textureQuality || 'standard';
+    if (['standard', 'detailed'].includes(textureQuality)) payload.texture_quality = textureQuality;
+    payload.auto_size = asBool(body.autoSize, false);
+  }
+
+  if (['v3.1-20260211', 'v3.0-20250812'].includes(modelVersion)) {
+    const geometryQuality = body.geometryQuality || 'standard';
+    if (['standard', 'detailed'].includes(geometryQuality)) payload.geometry_quality = geometryQuality;
+  }
+
+  if (asBool(body.compressGeometry, false)) payload.compress = 'geometry';
+
+  return payload;
+}
+
 async function createTripoTask(payload) {
   const response = await fetch(`${TRIPO_API_BASE}/task`, {
     method: 'POST',
@@ -368,6 +409,52 @@ app.post('/api/generate', upload.single('image'), async (req, res, next) => {
   }
 });
 
+app.post('/api/generate-multiview', uploadMultiview.fields([
+  { name: 'front', maxCount: 1 },
+  { name: 'left',  maxCount: 1 },
+  { name: 'right', maxCount: 1 },
+  { name: 'back',  maxCount: 1 },
+]), async (req, res, next) => {
+  try {
+    const files = req.files || {};
+    if (!files.front?.[0]) {
+      return res.status(400).json({ error: 'Cần ít nhất ảnh mặt trước (front).' });
+    }
+
+    const views = ['front', 'left', 'right', 'back'];
+    const uploadResults = await Promise.all(
+      views.map(view => files[view]?.[0] ? uploadImageToTripo(files[view][0]) : null)
+    );
+    const tokens = {};
+    views.forEach((view, i) => { if (uploadResults[i]) tokens[view] = uploadResults[i].token; });
+
+    const payload = buildMultiviewPayload(tokens, req.body || {});
+    const created = await createTripoTask(payload);
+
+    try {
+      const jd = jobDir(created.taskId);
+      fs.mkdirSync(jd, { recursive: true });
+      for (const view of views) {
+        const file = files[view]?.[0];
+        if (!file) continue;
+        const ext = file.mimetype === 'image/webp' ? 'webp' : file.mimetype === 'image/png' ? 'png' : 'jpg';
+        fs.writeFileSync(path.join(jd, `input_${view}.${ext}`), file.buffer);
+      }
+    } catch { /* non-critical */ }
+
+    res.json({
+      taskId: created.taskId,
+      tokens,
+      submittedPayload: {
+        ...payload,
+        files: payload.files.map(f => ({ ...f, file_token: '[hidden]' }))
+      }
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 app.get('/api/task/:taskId', async (req, res, next) => {
   try {
     const task = await getTask(req.params.taskId);
@@ -412,16 +499,18 @@ app.get('/api/asset', async (req, res, next) => {
 
 app.post('/api/jobs', (req, res, next) => {
   try {
-    const { taskId, modelVersion, normalized, renderCredits, inputImageName, options, logs } = req.body || {};
+    const { taskId, mode, modelVersion, normalized, renderCredits, inputImageName, inputImages, options, logs } = req.body || {};
     if (!taskId || typeof taskId !== 'string') {
       return res.status(400).json({ error: 'Thiếu taskId hợp lệ.' });
     }
     const job = {
       taskId,
+      mode: mode || 'single',
       modelVersion: modelVersion || null,
       normalized: normalized || {},
       renderCredits: renderCredits ?? null,
       inputImageName: inputImageName || null,
+      inputImages: inputImages || null,
       options: options || null,
       logs: Array.isArray(logs) ? logs.slice(0, 50) : [],
       savedAt: new Date().toISOString()
@@ -483,8 +572,34 @@ app.get('/api/jobs/:taskId', (req, res, next) => {
 app.get('/api/jobs/:taskId/input', (req, res, next) => {
   try {
     const jd = jobDir(req.params.taskId);
+    // Single-image jobs first, then fall back to multiview front view
+    const candidates = [
+      ['input.jpg', 'image/jpeg'], ['input.png', 'image/png'], ['input.webp', 'image/webp'],
+      ['input_front.jpg', 'image/jpeg'], ['input_front.png', 'image/png'], ['input_front.webp', 'image/webp'],
+    ];
+    for (const [name, mime] of candidates) {
+      const fp = path.join(jd, name);
+      if (fs.existsSync(fp)) {
+        res.setHeader('Content-Type', mime);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(fs.readFileSync(fp));
+      }
+    }
+    res.status(404).end();
+  } catch (error) {
+    next(error);
+  }
+});
+
+app.get('/api/jobs/:taskId/input/:view', (req, res, next) => {
+  try {
+    const { taskId, view } = req.params;
+    if (!['front', 'left', 'right', 'back'].includes(view)) {
+      return res.status(400).json({ error: 'View không hợp lệ. Dùng: front, left, right, back.' });
+    }
+    const jd = jobDir(taskId);
     for (const [ext, mime] of [['jpg', 'image/jpeg'], ['png', 'image/png'], ['webp', 'image/webp']]) {
-      const fp = path.join(jd, `input.${ext}`);
+      const fp = path.join(jd, `input_${view}.${ext}`);
       if (fs.existsSync(fp)) {
         res.setHeader('Content-Type', mime);
         res.setHeader('Cache-Control', 'public, max-age=86400');

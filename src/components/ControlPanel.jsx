@@ -19,7 +19,6 @@ function NumberField({ value, onChange, min, max, step = 1, placeholder, ariaLab
     const emptyBase = Number.isFinite(minValue) ? minValue - direction * stepValue : 0;
     const base = Number.isFinite(current) ? current : emptyBase;
     const nextValue = clamp(base + direction * stepValue);
-
     onChange(String(nextValue));
     inputRef.current?.focus();
   }
@@ -38,20 +37,8 @@ function NumberField({ value, onChange, min, max, step = 1, placeholder, ariaLab
         aria-label={ariaLabel}
       />
       <div className="number-stepper">
-        <button
-          type="button"
-          className="number-stepper-button up"
-          onClick={() => stepBy(1)}
-          aria-label={`Increase ${ariaLabel}`}
-          tabIndex={-1}
-        />
-        <button
-          type="button"
-          className="number-stepper-button down"
-          onClick={() => stepBy(-1)}
-          aria-label={`Decrease ${ariaLabel}`}
-          tabIndex={-1}
-        />
+        <button type="button" className="number-stepper-button up" onClick={() => stepBy(1)}  aria-label={`Increase ${ariaLabel}`} tabIndex={-1} />
+        <button type="button" className="number-stepper-button down" onClick={() => stepBy(-1)} aria-label={`Decrease ${ariaLabel}`} tabIndex={-1} />
       </div>
     </div>
   );
@@ -64,18 +51,14 @@ function SelectField({ value, onChange, options, disabled = false, ariaLabel }) 
 
   useEffect(() => {
     if (!open) return undefined;
-
     function handlePointerDown(event) {
       if (!rootRef.current?.contains(event.target)) setOpen(false);
     }
-
     function handleKeyDown(event) {
       if (event.key === 'Escape') setOpen(false);
     }
-
     document.addEventListener('pointerdown', handlePointerDown);
     document.addEventListener('keydown', handleKeyDown);
-
     return () => {
       document.removeEventListener('pointerdown', handlePointerDown);
       document.removeEventListener('keydown', handleKeyDown);
@@ -94,11 +77,7 @@ function SelectField({ value, onChange, options, disabled = false, ariaLabel }) 
   function handleButtonKeyDown(event) {
     if (!['ArrowDown', 'ArrowUp', 'Enter', ' '].includes(event.key)) return;
     event.preventDefault();
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      setOpen(true);
-      return;
-    }
-
+    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') { setOpen(true); return; }
     setOpen((current) => !current);
   }
 
@@ -117,7 +96,6 @@ function SelectField({ value, onChange, options, disabled = false, ariaLabel }) 
         <span>{selected?.label}</span>
         <span className="select-chevron" aria-hidden="true" />
       </button>
-
       {open && (
         <div className="select-menu" role="listbox" aria-label={ariaLabel}>
           {options.map((option) => (
@@ -138,109 +116,260 @@ function SelectField({ value, onChange, options, disabled = false, ariaLabel }) 
   );
 }
 
+// ─── Multiview icons ───────────────────────────────────────────────
+
+const PERSON_ICON = (
+  <svg width="26" height="30" viewBox="0 0 26 30" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <circle cx="13" cy="8" r="6"/>
+    <path d="M1 29c0-6.6 5.4-12 12-12s12 5.4 12 12"/>
+  </svg>
+);
+
+const CROWN_ICON = (
+  <svg width="11" height="9" viewBox="0 0 11 9" fill="#f59e0b" aria-hidden="true">
+    <path d="M0.5 8.5L2 3.5L4.5 6.5L5.5 0.5L6.5 6.5L9 3.5L10.5 8.5H0.5Z"/>
+  </svg>
+);
+
+const MV_VIEWS = [
+  { key: 'front', label: 'Trước',    required: true  },
+  { key: 'left',  label: 'Bên trái', required: false },
+  { key: 'right', label: 'Phải',     required: false },
+  { key: 'back',  label: 'Mặt sau',  required: false },
+];
+
+function MultiviewSlot({ viewKey, label, required, preview, onFile }) {
+  const [drag, setDrag] = useState(false);
+
+  function handleFile(file) {
+    if (!file) return;
+    onFile(viewKey, file);
+  }
+
+  return (
+    <label
+      className={[
+        's-mv4-slot',
+        required ? 's-mv4-front' : 's-mv4-side',
+        preview  ? 's-mv4-filled' : '',
+        drag     ? 's-mv4-drag'   : '',
+      ].join(' ')}
+      onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+      onDragLeave={() => setDrag(false)}
+      onDrop={(e) => { e.preventDefault(); setDrag(false); handleFile(e.dataTransfer.files?.[0]); }}
+    >
+      <input
+        type="file"
+        accept="image/png,image/jpeg,image/webp"
+        onChange={(e) => handleFile(e.target.files?.[0])}
+      />
+
+      {preview
+        ? <img src={preview} alt={label} />
+        : (
+          <div className="s-mv4-body">
+            <span className="s-mv4-icon">{PERSON_ICON}</span>
+            <span className="s-mv4-label">{label}</span>
+            {required && <small className="s-mv4-hint">JPG, PNG, WEBP, ≤ 200MB</small>}
+          </div>
+        )
+      }
+
+      {required && <div className="s-mv4-badge">{CROWN_ICON}</div>}
+
+      {preview && (
+        <button
+          type="button"
+          className="s-mv4-clear"
+          title="Xóa ảnh"
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); onFile(viewKey, null); }}
+        >×</button>
+      )}
+
+      {!preview && <div className="s-mv4-view-tag">{label}</div>}
+    </label>
+  );
+}
+
+function MultiviewGrid({ multiPreviews, onFile }) {
+  const [front, ...sides] = MV_VIEWS;
+  return (
+    <div className="s-mv4-grid">
+      <MultiviewSlot
+        viewKey={front.key}
+        label={front.label}
+        required={front.required}
+        preview={multiPreviews[front.key]}
+        onFile={onFile}
+      />
+      <div className="s-mv4-sides">
+        {sides.map(v => (
+          <MultiviewSlot
+            key={v.key}
+            viewKey={v.key}
+            label={v.label}
+            required={v.required}
+            preview={multiPreviews[v.key]}
+            onFile={onFile}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Shared settings block (used by both modes) ────────────────────
+
+function SharedSettings({ options, updateOption, selectedModel }) {
+  return (
+    <>
+      <div className="s-field">
+        <div className="s-fl">AI Model</div>
+        <SelectField value={options.modelVersion} onChange={(v) => updateOption('modelVersion', v)}
+          options={MODELS.map((m) => ({ value: m.value, label: m.label }))} ariaLabel="Model" />
+        <p className="s-fhint">{selectedModel.description}</p>
+      </div>
+
+      <div className="s-toggle-group">
+        <label className="s-tc">
+          <input type="checkbox" checked={options.texture} onChange={(e) => updateOption('texture', e.target.checked)} />
+          <span><strong>Texture</strong><small>Tạo màu/texture từ ảnh</small></span>
+        </label>
+        <label className="s-tc">
+          <input type="checkbox" checked={options.pbr} onChange={(e) => updateOption('pbr', e.target.checked)} />
+          <span><strong>PBR</strong><small>Material maps cho game/3D</small></span>
+        </label>
+      </div>
+
+      <div className="s-2col">
+        <div className="s-field">
+          <div className="s-fl">Texture quality</div>
+          <SelectField value={options.textureQuality} onChange={(v) => updateOption('textureQuality', v)}
+            options={[{value:'standard',label:'Standard'},{value:'detailed',label:'Detailed'}]}
+            disabled={!options.texture && !options.pbr} ariaLabel="Texture quality" />
+        </div>
+        <div className="s-field">
+          <div className="s-fl">Geometry quality</div>
+          <SelectField value={options.geometryQuality} onChange={(v) => updateOption('geometryQuality', v)}
+            options={[{value:'standard',label:'Standard'},{value:'detailed',label:'Ultra'}]}
+            disabled={!options.modelVersion.startsWith('v3')} ariaLabel="Geometry quality" />
+        </div>
+      </div>
+
+      <details className="s-adv">
+        <summary>Tuỳ chỉnh nâng cao</summary>
+        <div className="s-adv-body">
+          <div className="s-2col">
+            <div className="s-field"><div className="s-fl">Face limit</div>
+              <NumberField min="48" placeholder="Tự động" value={options.faceLimit} onChange={(v) => updateOption('faceLimit', v)} ariaLabel="Face limit" /></div>
+            <div className="s-field"><div className="s-fl">Orientation</div>
+              <SelectField value={options.orientation} onChange={(v) => updateOption('orientation', v)}
+                options={[{value:'default',label:'Default'},{value:'align_image',label:'Align image'}]}
+                disabled={!options.texture && !options.pbr} ariaLabel="Orientation" /></div>
+          </div>
+          <div className="s-2col">
+            <div className="s-field"><div className="s-fl">Texture align</div>
+              <SelectField value={options.textureAlignment} onChange={(v) => updateOption('textureAlignment', v)}
+                options={[{value:'original_image',label:'Original image'},{value:'geometry',label:'Geometry'}]} ariaLabel="Texture alignment" /></div>
+            <div className="s-field"><div className="s-fl">Model seed</div>
+              <NumberField placeholder="Random" value={options.modelSeed} onChange={(v) => updateOption('modelSeed', v)} ariaLabel="Model seed" /></div>
+          </div>
+          <div className="s-2col">
+            <label className="s-tc compact">
+              <input type="checkbox" checked={options.enableImageAutofix} onChange={(e) => updateOption('enableImageAutofix', e.target.checked)} />
+              <span><strong>Image autofix</strong><small>Tự tối ưu ảnh đầu vào</small></span>
+            </label>
+            <label className="s-tc compact">
+              <input type="checkbox" checked={options.compressGeometry} onChange={(e) => updateOption('compressGeometry', e.target.checked)} />
+              <span><strong>Compress</strong><small>Nén geometry output</small></span>
+            </label>
+          </div>
+        </div>
+      </details>
+    </>
+  );
+}
+
+// ─── Main ControlPanel ─────────────────────────────────────────────
+
 export default function ControlPanel({
   options, updateOption, selectedModel,
   imagePreview, dragOver, setDragOver, setFile, onDrop,
   error, loading, imageFile, onGenerate,
+  multiImages, multiPreviews, setMultiFile, onGenerateMulti,
 }) {
+  const [mode, setMode] = useState('single');
+
+  const isSingleReady = Boolean(imageFile);
+  const isMultiReady  = Boolean(multiImages?.front);
+
   return (
     <aside className="s-left-panel">
       <div className="s-lp-head">Tạo model từ ảnh</div>
       <div className="s-lp-body">
-        {/* dropzone */}
-        <label
-          className={`s-dz${dragOver ? ' over' : ''}${imagePreview ? ' filled' : ''}`}
-          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-          onDragLeave={() => setDragOver(false)}
-          onDrop={onDrop}
-        >
-          <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0])} />
-          {imagePreview ? (
-            <img src={imagePreview} alt="preview" />
-          ) : (
-            <div className="s-dz-empty">
-              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
-              <span>Kéo thả hoặc bấm để chọn</span>
-              <small>PNG · JPG · WEBP · ≤200MB</small>
-            </div>
-          )}
-        </label>
 
-        {/* model selector */}
-        <div className="s-field">
-          <div className="s-fl">AI Model</div>
-          <SelectField value={options.modelVersion} onChange={(v) => updateOption('modelVersion', v)}
-            options={MODELS.map((m) => ({ value: m.value, label: m.label }))} ariaLabel="Model" />
-          <p className="s-fhint">{selectedModel.description}</p>
+        {/* ── mode tabs ── */}
+        <div className="s-mode-tabs">
+          <button
+            type="button"
+            className={`s-mode-tab${mode === 'single' ? ' active' : ''}`}
+            onClick={() => setMode('single')}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+            1 ảnh
+          </button>
+          <button
+            type="button"
+            className={`s-mode-tab${mode === 'multi' ? ' active' : ''}`}
+            onClick={() => setMode('multi')}
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
+            4 ảnh
+          </button>
         </div>
 
-        {/* texture/pbr */}
-        <div className="s-toggle-group">
-          <label className="s-tc">
-            <input type="checkbox" checked={options.texture} onChange={(e) => updateOption('texture', e.target.checked)} />
-            <span><strong>Texture</strong><small>Tạo màu/texture từ ảnh</small></span>
+        {/* ── single image dropzone ── */}
+        {mode === 'single' && (
+          <label
+            className={`s-dz${dragOver ? ' over' : ''}${imagePreview ? ' filled' : ''}`}
+            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={onDrop}
+          >
+            <input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setFile(e.target.files?.[0])} />
+            {imagePreview ? (
+              <img src={imagePreview} alt="preview" />
+            ) : (
+              <div className="s-dz-empty">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+                <span>Kéo thả hoặc bấm để chọn</span>
+                <small>PNG · JPG · WEBP · ≤200MB</small>
+              </div>
+            )}
           </label>
-          <label className="s-tc">
-            <input type="checkbox" checked={options.pbr} onChange={(e) => updateOption('pbr', e.target.checked)} />
-            <span><strong>PBR</strong><small>Material maps cho game/3D</small></span>
-          </label>
-        </div>
+        )}
 
-        {/* quality */}
-        <div className="s-2col">
-          <div className="s-field">
-            <div className="s-fl">Texture quality</div>
-            <SelectField value={options.textureQuality} onChange={(v) => updateOption('textureQuality', v)}
-              options={[{value:'standard',label:'Standard'},{value:'detailed',label:'Detailed'}]}
-              disabled={!options.texture && !options.pbr} ariaLabel="Texture quality" />
-          </div>
-          <div className="s-field">
-            <div className="s-fl">Geometry quality</div>
-            <SelectField value={options.geometryQuality} onChange={(v) => updateOption('geometryQuality', v)}
-              options={[{value:'standard',label:'Standard'},{value:'detailed',label:'Ultra'}]}
-              disabled={!options.modelVersion.startsWith('v3')} ariaLabel="Geometry quality" />
-          </div>
-        </div>
+        {/* ── 4-image multiview grid ── */}
+        {mode === 'multi' && (
+          <MultiviewGrid multiPreviews={multiPreviews || {}} onFile={setMultiFile} />
+        )}
 
-        {/* advanced */}
-        <details className="s-adv">
-          <summary>Tuỳ chỉnh nâng cao</summary>
-          <div className="s-adv-body">
-            <div className="s-2col">
-              <div className="s-field"><div className="s-fl">Face limit</div>
-                <NumberField min="48" placeholder="Tự động" value={options.faceLimit} onChange={(v) => updateOption('faceLimit', v)} ariaLabel="Face limit" /></div>
-              <div className="s-field"><div className="s-fl">Orientation</div>
-                <SelectField value={options.orientation} onChange={(v) => updateOption('orientation', v)}
-                  options={[{value:'default',label:'Default'},{value:'align_image',label:'Align image'}]}
-                  disabled={!options.texture && !options.pbr} ariaLabel="Orientation" /></div>
-            </div>
-            <div className="s-2col">
-              <div className="s-field"><div className="s-fl">Texture align</div>
-                <SelectField value={options.textureAlignment} onChange={(v) => updateOption('textureAlignment', v)}
-                  options={[{value:'original_image',label:'Original image'},{value:'geometry',label:'Geometry'}]} ariaLabel="Texture alignment" /></div>
-              <div className="s-field"><div className="s-fl">Model seed</div>
-                <NumberField placeholder="Random" value={options.modelSeed} onChange={(v) => updateOption('modelSeed', v)} ariaLabel="Model seed" /></div>
-            </div>
-            <div className="s-2col">
-              <label className="s-tc compact">
-                <input type="checkbox" checked={options.enableImageAutofix} onChange={(e) => updateOption('enableImageAutofix', e.target.checked)} />
-                <span><strong>Image autofix</strong><small>Tự tối ưu ảnh đầu vào</small></span>
-              </label>
-              <label className="s-tc compact">
-                <input type="checkbox" checked={options.compressGeometry} onChange={(e) => updateOption('compressGeometry', e.target.checked)} />
-                <span><strong>Compress</strong><small>Nén geometry output</small></span>
-              </label>
-            </div>
-          </div>
-        </details>
+        {/* ── shared settings (AI model, quality, advanced) ── */}
+        <SharedSettings options={options} updateOption={updateOption} selectedModel={selectedModel} />
 
         {error && <div className="s-alert">{error}</div>}
       </div>
 
       <div className="s-lp-foot">
-        <button className="s-gen-btn" onClick={onGenerate} disabled={loading || !imageFile}>
-          {loading ? 'Đang generate…' : 'Generate GLB'}
-        </button>
+        {mode === 'single' ? (
+          <button className="s-gen-btn" onClick={onGenerate} disabled={loading || !isSingleReady}>
+            {loading ? 'Đang generate…' : 'Generate GLB'}
+          </button>
+        ) : (
+          <button className="s-gen-btn s-gen-btn--multi" onClick={onGenerateMulti} disabled={loading || !isMultiReady}>
+            {loading ? 'Đang generate…' : 'Generate GLB  ·  4 ảnh'}
+          </button>
+        )}
       </div>
     </aside>
   );
