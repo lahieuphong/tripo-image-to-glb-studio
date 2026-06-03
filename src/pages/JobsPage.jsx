@@ -106,7 +106,14 @@ function JobCard({ job, onSelect }) {
   return (
     <button className="job-card" onClick={() => onSelect(job.taskId)}>
       <div className="job-thumb">
-        {!inputFailed ? (
+        {isMultiviewJob(job) ? (
+          <div className="job-thumb-mv">
+            {['front', 'right', 'left', 'back'].map(view => (
+              <img key={view} src={`/api/jobs/${job.taskId}/input/${view}`} alt={view} loading="lazy"
+                onError={(e) => { e.currentTarget.style.visibility = 'hidden'; }} />
+            ))}
+          </div>
+        ) : !inputFailed ? (
           <img src={`/api/jobs/${job.taskId}/input`} alt="input" loading="lazy" onError={() => setInputFailed(true)} />
         ) : !renderFailed && renderThumbSrc ? (
           <img src={renderThumbSrc} alt="render" loading="lazy" onError={() => setRenderFailed(true)} />
@@ -176,26 +183,51 @@ function JobDetail({ taskId }) {
         {/* Phần 1: Ảnh gốc */}
         <div className="job-section">
           <p className="eyebrow" style={{ marginBottom: 10 }}>
-            {inputImgFailed ? 'Ảnh render Tripo' : 'Ảnh gốc (Input)'}
+            {isMultiviewJob(job) ? 'Ảnh gốc (4 góc)' : inputImgFailed ? 'Ảnh render Tripo' : 'Ảnh gốc (Input)'}
           </p>
-          <div className="job-input-wrap">
-            {!inputImgFailed ? (
-              <img
-                src={`/api/jobs/${taskId}/input`}
-                alt={job.inputImageName || 'Input'}
-                onError={() => setInputImgFailed(true)}
-              />
-            ) : renderedSrc ? (
-              <img
-                src={renderedSrc}
-                alt="Render"
-                onError={(e) => { e.target.closest('.job-input-wrap').style.display = 'none'; }}
-              />
-            ) : (
-              <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: 20 }}>Không có ảnh</div>
-            )}
-          </div>
-          {job.inputImageName && (
+          {isMultiviewJob(job) ? (
+            <div className="job-input-mv-grid">
+              {[
+                { view: 'front', label: 'Trước' },
+                { view: 'left',  label: 'Trái'  },
+                { view: 'right', label: 'Phải'  },
+                { view: 'back',  label: 'Sau'   },
+              ].map(({ view, label }) => (
+                <div key={view} className="job-input-mv-cell">
+                  <div className="job-input-mv-img-wrap">
+                    <img
+                      src={`/api/jobs/${taskId}/input/${view}`}
+                      alt={label}
+                      onError={(e) => {
+                        const cell = e.currentTarget.closest('.job-input-mv-cell');
+                        if (cell) cell.style.opacity = '0.25';
+                      }}
+                    />
+                  </div>
+                  <span className="job-input-mv-label">{label}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="job-input-wrap">
+              {!inputImgFailed ? (
+                <img
+                  src={`/api/jobs/${taskId}/input`}
+                  alt={job.inputImageName || 'Input'}
+                  onError={() => setInputImgFailed(true)}
+                />
+              ) : renderedSrc ? (
+                <img
+                  src={renderedSrc}
+                  alt="Render"
+                  onError={(e) => { e.target.closest('.job-input-wrap').style.display = 'none'; }}
+                />
+              ) : (
+                <div style={{ color: 'var(--text-dim)', fontSize: 13, padding: 20 }}>Không có ảnh</div>
+              )}
+            </div>
+          )}
+          {!isMultiviewJob(job) && job.inputImageName && (
             <p className="job-input-name">{job.inputImageName}</p>
           )}
         </div>

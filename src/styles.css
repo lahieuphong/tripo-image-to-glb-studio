@@ -1040,6 +1040,17 @@ a.nav-item {
   text-overflow: ellipsis;
 }
 
+/* Multiview 2×2 thumbnail mosaic in job card */
+.job-thumb-mv { display: grid; grid-template-columns: 1fr 1fr; width: 100%; height: 100%; }
+.job-thumb-mv img { width: 100%; height: 75px; object-fit: cover; }
+
+/* Multiview 4-image grid in job detail */
+.job-input-mv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 12px; background: var(--bg-subtle); border: 1px solid var(--border-medium); border-radius: 20px; }
+.job-input-mv-cell { display: flex; flex-direction: column; align-items: center; gap: 5px; transition: opacity 200ms; }
+.job-input-mv-img-wrap { width: 100%; aspect-ratio: 1; background: var(--bg-card); border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.job-input-mv-img-wrap img { width: 100%; height: 100%; object-fit: contain; display: block; }
+.job-input-mv-label { font-size: 11px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+
 @media (max-width: 900px) {
   .job-detail-top {
     grid-template-columns: 1fr;
