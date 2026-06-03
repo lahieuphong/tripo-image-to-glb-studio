@@ -274,7 +274,7 @@ function normalizeOutput(task) {
     baseModelUrl: output.base_model || null,
     renderedImageUrl: output.rendered_image || null,
     generatedImageUrl: output.generated_image || null,
-    renderCredits: task?.render_credits ?? task?.credits ?? null
+    renderCredits: task?.consumed_credit ?? task?.consumedCredit ?? task?.render_credits ?? task?.credits ?? null
   };
 }
 

@@ -967,6 +967,30 @@ a.nav-item {
   border: 1px solid var(--accent-border);
 }
 
+.job-card-meta .job-card-input-mode {
+  color: #bfdbfe;
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(96, 165, 250, 0.28);
+}
+
+.job-card-meta .job-card-credit {
+  color: #bbf7d0;
+  background: rgba(34, 197, 94, 0.12);
+  border-color: rgba(74, 222, 128, 0.28);
+}
+
+.job-card-meta .job-card-credit.estimated {
+  color: #fde68a;
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.26);
+}
+
+.job-card-meta .job-card-credit.unknown {
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border-color: var(--border-medium);
+}
+
 /* ─── Job detail ──────────────────────────────────────────────── */
 .job-detail-top {
   display: grid;
@@ -1064,6 +1088,25 @@ a.nav-item {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.job-meta-value,
+.job-meta-credit {
+  min-width: 0;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.job-meta-credit {
+  color: var(--text-primary);
+}
+
+.job-meta-credit.estimated {
+  color: #fde68a;
+}
+
+.job-meta-credit.unknown {
+  color: var(--text-muted);
 }
 
 /* ─── Jobs empty / loading ────────────────────────────────────── */

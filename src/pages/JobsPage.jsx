@@ -4,9 +4,101 @@ function proxyUrl(url) {
   return url ? `/api/asset?url=${encodeURIComponent(url)}` : '';
 }
 
+function isMultiviewJob(job) {
+  const mode = String(job?.mode || '').toLowerCase();
+  if (mode === 'multiview' || mode === 'multi') return true;
+
+  const inputImages = job?.inputImages;
+  if (!inputImages || typeof inputImages !== 'object') return false;
+  return Object.values(inputImages).filter(Boolean).length > 1;
+}
+
+function inputModeInfo(job) {
+  return isMultiviewJob(job)
+    ? { label: '4 ảnh', detail: 'Multiview to model' }
+    : { label: '1 ảnh', detail: 'Image to model' };
+}
+
+function hasOption(job, key) {
+  return Object.prototype.hasOwnProperty.call(job?.options || {}, key);
+}
+
+function textureEnabled(job) {
+  if (hasOption(job, 'texture') || hasOption(job, 'pbr')) {
+    return Boolean(job.options?.texture || job.options?.pbr);
+  }
+  if (job?.normalized?.pbrModelUrl) return true;
+  if (job?.normalized?.baseModelUrl && !job?.normalized?.pbrModelUrl) return false;
+  return null;
+}
+
+function estimatedCredits(job) {
+  const modelVersion = String(job?.options?.modelVersion || job?.modelVersion || '');
+  const withTexture = textureEnabled(job);
+
+  if (!modelVersion || modelVersion.startsWith('Turbo') || withTexture == null) return null;
+  if (modelVersion.startsWith('P1')) return withTexture ? 50 : 40;
+
+  let credits = withTexture ? 30 : 20;
+  if (withTexture && job?.options?.textureQuality === 'detailed') credits += 10;
+  return credits;
+}
+
+function creditInfo(job) {
+  const actual = job?.renderCredits
+    ?? job?.normalized?.renderCredits
+    ?? job?.normalized?.consumed_credit
+    ?? job?.normalized?.consumedCredit
+    ?? null;
+  if (actual != null) {
+    return {
+      chip: `${actual} cr`,
+      rowLabel: 'Credits sử dụng',
+      rowValue: `${actual} credits`,
+      kind: 'actual'
+    };
+  }
+
+  const estimate = estimatedCredits(job);
+  if (estimate != null) {
+    return {
+      chip: `~${estimate} cr`,
+      rowLabel: 'Credits ước tính',
+      rowValue: `${estimate} credits`,
+      kind: 'estimated'
+    };
+  }
+
+  return {
+    chip: 'credit chưa rõ',
+    rowLabel: 'Credits',
+    rowValue: 'Chưa rõ',
+    kind: 'unknown'
+  };
+}
+
+function inputImagesLabel(job) {
+  const inputImages = job?.inputImages;
+  if (!inputImages || typeof inputImages !== 'object') return '';
+
+  const labels = {
+    front: 'Trước',
+    left: 'Trái',
+    right: 'Phải',
+    back: 'Sau'
+  };
+
+  return ['front', 'left', 'right', 'back']
+    .filter((view) => inputImages[view])
+    .map((view) => `${labels[view]}: ${inputImages[view]}`)
+    .join(' · ');
+}
+
 function JobCard({ job, onSelect }) {
   const [inputFailed, setInputFailed] = useState(false);
   const [renderFailed, setRenderFailed] = useState(false);
+  const modeInfo = inputModeInfo(job);
+  const credits = creditInfo(job);
   const renderThumbSrc = job.localRenderAvailable
     ? `/api/jobs/${job.taskId}/render`
     : (job.normalized?.renderedImageUrl ? proxyUrl(job.normalized.renderedImageUrl) : '');
@@ -27,7 +119,13 @@ function JobCard({ job, onSelect }) {
         <p className="job-card-date">{new Date(job.savedAt).toLocaleString('vi-VN')}</p>
         <div className="job-card-meta">
           {job.modelVersion && <span>{job.modelVersion.split('-')[0]}</span>}
-          {job.renderCredits != null && <span>{job.renderCredits} cr</span>}
+          <span className="job-card-input-mode">{modeInfo.label}</span>
+          <span
+            className={`job-card-credit ${credits.kind}`}
+            title={credits.kind === 'estimated' ? 'Ước tính theo model và option đã lưu' : undefined}
+          >
+            {credits.chip}
+          </span>
         </div>
       </div>
     </button>
@@ -64,6 +162,9 @@ function JobDetail({ taskId }) {
   const renderedSrc = job.localRenderAvailable
     ? `/api/jobs/${job.taskId}/render`
     : (job.normalized?.renderedImageUrl ? proxyUrl(job.normalized.renderedImageUrl) : '');
+  const modeInfo = inputModeInfo(job);
+  const credits = creditInfo(job);
+  const multiImages = inputImagesLabel(job);
 
   return (
     <div className="job-detail">
@@ -144,16 +245,30 @@ function JobDetail({ taskId }) {
             <span>{job.modelVersion}</span>
           </div>
         )}
+        <div className="job-meta-row">
+          <span>Loại input</span>
+          <span className="job-meta-value">{modeInfo.label} · {modeInfo.detail}</span>
+        </div>
         {job.inputImageName && (
           <div className="job-meta-row">
             <span>Ảnh gốc</span>
             <span>{job.inputImageName}</span>
           </div>
         )}
-        {job.renderCredits != null && (
+        {multiImages && (
           <div className="job-meta-row">
-            <span>Credits sử dụng</span>
-            <strong>{job.renderCredits}</strong>
+            <span>Ảnh 4 góc</span>
+            <span className="job-meta-value">{multiImages}</span>
+          </div>
+        )}
+        <div className="job-meta-row">
+          <span>{credits.rowLabel}</span>
+          <strong className={`job-meta-credit ${credits.kind}`}>{credits.rowValue}</strong>
+        </div>
+        {credits.kind === 'estimated' && (
+          <div className="job-meta-row">
+            <span>Ghi chú</span>
+            <span className="job-meta-value">Tripo chưa trả credit thực tế cho job này, UI đang hiển thị theo pricing đã lưu.</span>
           </div>
         )}
       </div>
