@@ -234,10 +234,12 @@ export default function App() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               taskId: id,
+              mode: 'single',
               modelVersion: options.modelVersion,
               normalized: parsed.normalized,
               renderCredits: parsed.normalized?.renderCredits ?? null,
               inputImageName: imageFile?.name ?? null,
+              inputImages: null,
               options,
               logs: finalLogs,
             })

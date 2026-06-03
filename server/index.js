@@ -610,6 +610,14 @@ app.post('/api/jobs', (req, res, next) => {
   }
 });
 
+function checkLocalInputAvailable(jd) {
+  const candidates = [
+    'input.jpg', 'input.png', 'input.webp',
+    'input_front.jpg', 'input_front.png', 'input_front.webp',
+  ];
+  return candidates.some((name) => fs.existsSync(path.join(jd, name)));
+}
+
 app.get('/api/jobs', (_req, res, next) => {
   try {
     const jobs = fs.readdirSync(JOBS_DIR, { withFileTypes: true })
@@ -624,6 +632,7 @@ app.get('/api/jobs', (_req, res, next) => {
           job.localRenderAvailable = ['jpg', 'png', 'webp'].some(
             (ext) => fs.existsSync(path.join(jd, `render.${ext}`))
           );
+          job.localInputAvailable = checkLocalInputAvailable(jd);
           return job;
         }
         catch { return null; }
@@ -648,6 +657,7 @@ app.get('/api/jobs/:taskId', (req, res, next) => {
     job.localRenderAvailable = ['jpg', 'png', 'webp'].some(
       (ext) => fs.existsSync(path.join(jd, `render.${ext}`))
     );
+    job.localInputAvailable = checkLocalInputAvailable(jd);
     res.json(job);
   } catch (error) {
     next(error);
