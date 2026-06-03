@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import express from 'express';
 import multer from 'multer';
+import sharp from 'sharp';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -312,6 +313,89 @@ function migrateOldJobFiles() {
 }
 migrateOldJobFiles();
 
+// Add mode:'single' to job.json files saved before mode field was introduced
+function patchJobModeField() {
+  try {
+    for (const item of fs.readdirSync(JOBS_DIR, { withFileTypes: true })) {
+      if (!item.isDirectory()) continue;
+      const jsonPath = path.join(JOBS_DIR, item.name, 'job.json');
+      if (!fs.existsSync(jsonPath)) continue;
+      try {
+        const job = JSON.parse(fs.readFileSync(jsonPath, 'utf8'));
+        if (job.mode) continue;
+        job.mode = 'single';
+        fs.writeFileSync(jsonPath, JSON.stringify(job, null, 2));
+      } catch { /* non-critical */ }
+    }
+  } catch { /* non-critical */ }
+}
+patchJobModeField();
+
+// Pad and flatten render image onto white background at the same proportions as the
+// input image so the subject appears at the same apparent scale.
+async function padRenderForSave(renderBuf, jd) {
+  try {
+    const renderMeta = await sharp(renderBuf).metadata();
+    const rW = renderMeta.width || 512;
+    const rH = renderMeta.height || 512;
+
+    // Use input image dimensions as canvas reference (fall back to render dims)
+    let targetW = rW, targetH = rH;
+    for (const name of ['input.jpg','input.png','input.webp','input_front.jpg','input_front.png','input_front.webp']) {
+      const fp = path.join(jd, name);
+      if (!fs.existsSync(fp)) continue;
+      try {
+        const m = await sharp(fs.readFileSync(fp)).metadata();
+        if (m.width && m.height) { targetW = m.width; targetH = m.height; }
+      } catch {}
+      break;
+    }
+
+    // Scale render to 72% of canvas so the object has ~14% breathing room on each side
+    const scale  = Math.min(targetW / rW, targetH / rH) * 0.72;
+    const scaledW = Math.max(1, Math.round(rW * scale));
+    const scaledH = Math.max(1, Math.round(rH * scale));
+    const padL = Math.round((targetW - scaledW) / 2);
+    const padR = targetW  - scaledW - padL;
+    const padT = Math.round((targetH - scaledH) / 2);
+    const padB = targetH  - scaledH - padT;
+
+    return await sharp(renderBuf)
+      .resize(scaledW, scaledH, { fit: 'contain', background: { r: 255, g: 255, b: 255, alpha: 1 } })
+      .flatten({ background: { r: 255, g: 255, b: 255 } })
+      .extend({ top: padT, bottom: padB, left: padL, right: padR, background: { r: 255, g: 255, b: 255 } })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+  } catch {
+    // Fallback: just flatten transparency and convert to JPEG
+    try {
+      return await sharp(renderBuf).flatten({ background: { r: 255, g: 255, b: 255 } }).jpeg({ quality: 90 }).toBuffer();
+    } catch {
+      return renderBuf;
+    }
+  }
+}
+
+// Re-process existing render files that were saved in wrong format (e.g. WEBP saved as .jpg)
+async function patchExistingRenders() {
+  try {
+    for (const item of fs.readdirSync(JOBS_DIR, { withFileTypes: true })) {
+      if (!item.isDirectory()) continue;
+      const jd = path.join(JOBS_DIR, item.name);
+      const renderJpg = path.join(jd, 'render.jpg');
+      if (!fs.existsSync(renderJpg)) continue;
+      try {
+        const buf = fs.readFileSync(renderJpg);
+        const meta = await sharp(buf).metadata();
+        if (meta.format === 'jpeg') continue; // already correct JPEG, skip
+        const padded = await padRenderForSave(buf, jd);
+        fs.writeFileSync(renderJpg, padded);
+      } catch { /* non-critical */ }
+    }
+  } catch { /* non-critical */ }
+}
+patchExistingRenders().catch(() => {});
+
 async function downloadJobAssets(modelUrl, renderedImageUrl, taskId) {
   const jd = jobDir(taskId);
   fs.mkdirSync(jd, { recursive: true });
@@ -325,9 +409,10 @@ async function downloadJobAssets(modelUrl, renderedImageUrl, taskId) {
     try {
       const r = await fetch(renderedImageUrl);
       if (r.ok) {
-        const ct = r.headers.get('content-type') || '';
-        const ext = ct.includes('png') ? 'png' : ct.includes('webp') ? 'webp' : 'jpg';
-        fs.writeFileSync(path.join(jd, `render.${ext}`), Buffer.from(await r.arrayBuffer()));
+        const rawBuf = Buffer.from(await r.arrayBuffer());
+        const paddedBuf = await padRenderForSave(rawBuf, jd);
+        // Always save as .jpg — padRenderForSave outputs JPEG regardless of source format
+        fs.writeFileSync(path.join(jd, 'render.jpg'), paddedBuf);
       }
     } catch { /* non-critical */ }
   }
