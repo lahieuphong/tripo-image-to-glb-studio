@@ -9,7 +9,7 @@ const MODEL_ROWS = [
     singleTexture: '30',
     multiNoTexture: '20',
     multiTexture: '30',
-    note: 'Phụ phí H2/H3 có thể áp dụng theo bảng bên dưới.'
+    note: 'Phụ phí có thể áp dụng: +10 texture detailed, +20 geometry detailed (Ultra). Tối đa 60 credits.'
   },
   {
     model: 'P1',
@@ -69,10 +69,16 @@ const OPTION_ROWS = [
     meaning: 'Mặc định UI hiện tại đang là Standard.'
   },
   {
-    ui: 'Geometry quality',
-    api: 'geometry_quality=standard/detailed',
-    credit: 'Docs pricing không nêu phụ phí',
-    meaning: 'Code chỉ gửi tham số này cho H3 v3.1/v3.0; không có dòng surcharge riêng trong trang pricing.'
+    ui: 'Geometry quality: Standard',
+    api: 'geometry_quality=standard',
+    credit: '+0',
+    meaning: 'Mặc định, không có phụ phí thêm.'
+  },
+  {
+    ui: 'Geometry quality: Ultra',
+    api: 'geometry_quality=detailed',
+    credit: '+20 với H2/H3',
+    meaning: 'Geometry Ultra (gửi detailed lên API) tốn thêm ~20 credits với H3 v3.x. Chỉ áp dụng cho H3 v3.1 / v3.0.'
   },
   {
     ui: 'Face limit',
@@ -114,20 +120,28 @@ const OPTION_ROWS = [
 
 const QUICK_EXAMPLES = [
   {
-    title: 'Mặc định app hiện tại',
-    text: 'H3 v3.1 + Texture + PBR + Standard = 30 credits theo bảng H2/H3 + texture.'
+    title: 'Mặc định app (H3 + Texture/PBR)',
+    text: 'H3 v3.1 + Texture/PBR bật + Standard texture + Standard geometry = 30 credits.'
   },
   {
-    title: 'Nếu tắt Texture/PBR',
-    text: 'H3/H2 Image to model hoặc Multiview to model về 20 credits.'
+    title: 'Texture quality Detailed',
+    text: 'H3 + Texture/PBR + Detailed texture + Standard geometry = 30 + 10 = 40 credits.'
   },
   {
-    title: 'Nếu đổi Texture quality thành Detailed',
-    text: 'H2/H3 cộng thêm 10 credits. Ví dụ mặc định 30 sẽ thành 40.'
+    title: 'Geometry quality Ultra (Detailed)',
+    text: 'H3 + Texture/PBR + Standard texture + Ultra geometry = 30 + 20 = 50 credits.'
   },
   {
-    title: 'Nếu đổi sang P1',
-    text: 'P1 là 40 credits không texture, 50 credits có texture; phụ phí H2/H3 không áp dụng.'
+    title: 'Tất cả max (Detailed texture + Ultra geometry)',
+    text: 'H3 + Texture/PBR + Detailed texture + Ultra geometry = 30 + 10 + 20 = 60 credits.'
+  },
+  {
+    title: 'Tắt Texture/PBR',
+    text: 'H3/H2 Image to model hoặc Multiview to model, no texture = 20 credits.'
+  },
+  {
+    title: 'Đổi sang P1',
+    text: 'P1 là 40 credits không texture, 50 credits có texture; phụ phí H2/H3 không áp dụng cho P1.'
   }
 ];
 
