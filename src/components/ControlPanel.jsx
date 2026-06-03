@@ -204,7 +204,28 @@ function MultiviewSlot({ viewKey, label, required, preview, onFile }) {
 }
 
 function MultiviewGrid({ multiPreviews, onFile }) {
+  const hasAny = MV_VIEWS.some(v => multiPreviews[v.key]);
   const [front, ...sides] = MV_VIEWS;
+
+  // When at least 1 image is uploaded → switch to equal 2×2 mosaic layout
+  if (hasAny) {
+    return (
+      <div className="s-mv4-mosaic">
+        {MV_VIEWS.map(v => (
+          <MultiviewSlot
+            key={v.key}
+            viewKey={v.key}
+            label={v.label}
+            required={v.required}
+            preview={multiPreviews[v.key]}
+            onFile={onFile}
+          />
+        ))}
+      </div>
+    );
+  }
+
+  // Empty state → keep existing layout (1 large front + 3 small sides)
   return (
     <div className="s-mv4-grid">
       <MultiviewSlot
