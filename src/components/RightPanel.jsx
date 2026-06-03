@@ -5,7 +5,7 @@ import AssetsTab from './AssetsTab.jsx';
 export default function RightPanel({
   taskId, task, normalized, progress, currentStatus,
   downloadUrl, modelUrl, logs, balance,
-  modelVisible, onToggleModelVisible, transform,
+  modelVisible, onToggleModelVisible, onResetTransform, transform,
 }) {
   const [tab, setTab] = useState('result');
   return (
@@ -64,7 +64,7 @@ export default function RightPanel({
         </div>
       )}
 
-      {tab === 'assets' && <AssetsTab taskId={taskId} modelVisible={modelVisible} onToggleModelVisible={onToggleModelVisible} transform={transform} />}
+      {tab === 'assets' && <AssetsTab taskId={taskId} modelVisible={modelVisible} onToggleModelVisible={onToggleModelVisible} onResetTransform={onResetTransform} transform={transform} />}
     </aside>
   );
 }

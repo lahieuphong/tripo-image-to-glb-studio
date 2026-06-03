@@ -25,6 +25,7 @@ export default function App() {
 
   const [modelVisible, setModelVisible] = useState(true);
   const [transform, setTransform] = useState(null);
+  const [viewResetToken, setViewResetToken] = useState(0);
 
   const [options, setOptions] = useState({
     modelVersion: 'v3.1-20260211',
@@ -243,6 +244,7 @@ export default function App() {
             proxiedModelUrl={proxiedModelUrl} normalized={normalized}
             loading={loading} currentStatus={currentStatus} progress={progress}
             modelVisible={modelVisible} onCameraChange={setTransform}
+            resetToken={viewResetToken}
           />
           <RightPanel
             taskId={taskId} task={task} normalized={normalized}
@@ -250,6 +252,7 @@ export default function App() {
             downloadUrl={downloadUrl} modelUrl={modelUrl}
             logs={logs} balance={balance}
             modelVisible={modelVisible} onToggleModelVisible={() => setModelVisible(v => !v)}
+            onResetTransform={() => setViewResetToken(v => v + 1)}
             transform={transform}
           />
         </div>

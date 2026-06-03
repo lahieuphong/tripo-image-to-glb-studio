@@ -20,12 +20,6 @@ const EYE_OFF_ICON = (
   </svg>
 );
 
-const DOTS_ICON = (
-  <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-    <circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/>
-  </svg>
-);
-
 const MOVE_ICON = (
   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/>
@@ -73,7 +67,7 @@ function TfRow({ icon, values }) {
   );
 }
 
-export default function AssetsTab({ taskId, modelVisible = true, onToggleModelVisible, transform }) {
+export default function AssetsTab({ taskId, modelVisible = true, onToggleModelVisible, onResetTransform, transform }) {
   const nodeName = taskId ? `tripo_node_${taskId.slice(0, 13)}…` : null;
   const pos = transform?.pos ?? [0, 0, 0];
   const rot = transform?.rot ?? [0, 0, 0];
@@ -94,17 +88,23 @@ export default function AssetsTab({ taskId, modelVisible = true, onToggleModelVi
             >
               {modelVisible ? EYE_ICON : EYE_OFF_ICON}
             </button>
-            <button className="s-asset-icon-btn" title="Tùy chọn">{DOTS_ICON}</button>
           </div>
         ) : (
           <p className="s-rp-hint s-rp-hint-pad">Chưa có model.</p>
         )}
       </div>
 
-      <div className="s-asset-section">
+      <div className="s-asset-section s-asset-section--transform">
         <div className="s-asset-sec-hdr">
           <span>Biến đổi</span>
-          <button className="s-asset-icon-btn" title="Đặt lại">{RESET_ICON}</button>
+          <button
+            type="button"
+            className="s-asset-icon-btn"
+            title="Đặt lại"
+            onClick={(e) => { e.stopPropagation(); onResetTransform?.(); }}
+          >
+            {RESET_ICON}
+          </button>
         </div>
         <div className="s-tf-rows">
           <TfRow icon={MOVE_ICON}   values={pos} />

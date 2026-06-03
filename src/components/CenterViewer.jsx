@@ -13,6 +13,27 @@ function getModelBoundsCenter(mv) {
     || toFiniteVector3(mv?.getCameraTarget?.());
 }
 
+function toFiniteOrbit(o) {
+  if (!o) return null;
+  const { theta, phi, radius } = o;
+  if (![theta, phi, radius].every(Number.isFinite)) return null;
+  return { theta, phi, radius };
+}
+
+function defaultTransform() {
+  return { pos: [0, 0, 0], rot: [0, 0, 0], scl: [1, 1, 1] };
+}
+
+function applyCameraState(mv, cameraState) {
+  if (!mv || !cameraState?.t || !cameraState?.o) return false;
+  const { t, o, f } = cameraState;
+  mv.cameraOrbit = `${o.theta}rad ${o.phi}rad ${o.radius}m`;
+  mv.cameraTarget = `${t.x}m ${t.y}m ${t.z}m`;
+  if (Number.isFinite(f)) mv.fieldOfView = `${f}deg`;
+  mv.jumpCameraToGoal?.();
+  return true;
+}
+
 // Projects the model's 3D world-space center to screen coordinates and positions
 // the gizmo there, so it tracks the model as the camera orbits, pans, or zooms.
 // Falls back to the model-viewer element center when projection data is unavailable.
@@ -80,7 +101,7 @@ function syncGizmoToModelCenter(mv, el, container, modelCenter) {
   el.style.top  = `${mvRect.top  - cRect.top  + sy}px`;
 }
 
-export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress, modelVisible = true, onCameraChange }) {
+export default function CenterViewer({ proxiedModelUrl, normalized, loading, currentStatus, progress, modelVisible = true, onCameraChange, resetToken = 0 }) {
   const [selected, setSelected] = useState(false);
   const [axisLine, setAxisLine] = useState(null);
   const mvRef             = useRef(null);
@@ -105,12 +126,13 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     if (!mv || !proxiedModelUrl) return;
     function onLoad() {
       requestAnimationFrame(() => {
-        const t = mv.getCameraTarget?.();
-        const o = mv.getCameraOrbit?.();
+        const t = toFiniteVector3(mv.getCameraTarget?.());
+        const o = toFiniteOrbit(mv.getCameraOrbit?.());
+        const f = mv.getFieldOfView?.();
         modelCenterRef.current = getModelBoundsCenter(mv);
         if (t && o) {
-          initialCamRef.current = { t, o };
-          onCameraChange?.({ pos: [0, 0, 0], rot: [0, 0, 0], scl: [1, 1, 1] });
+          initialCamRef.current = { t, o, f };
+          onCameraChange?.(defaultTransform());
         }
       });
     }
@@ -142,6 +164,20 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     mv.addEventListener('camera-change', onCamChange);
     return () => mv.removeEventListener('camera-change', onCamChange);
   }, [proxiedModelUrl]);
+
+  useEffect(() => {
+    if (!resetToken) return;
+    const mv = mvRef.current;
+    if (!applyCameraState(mv, initialCamRef.current)) return;
+
+    onCameraChange?.(defaultTransform());
+    lastHitRef.current = null;
+    setHoveredAxis(null);
+    setAxisLine(null);
+    requestAnimationFrame(() => {
+      syncGizmoToModelCenter(mv, gizmoCenterRef.current, containerRef.current, modelCenterRef.current);
+    });
+  }, [resetToken, proxiedModelUrl]);
 
   // Keep gizmo projected to model center: update on mount, resize, and camera-change
   useEffect(() => {
@@ -352,6 +388,7 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
             <model-viewer ref={mvRef} src={proxiedModelUrl}
               camera-controls shadow-intensity="0"
               disable-tap
+              camera-orbit="auto auto 165%"
               environment-image="neutral" exposure="1" ar
               min-camera-orbit="auto auto 50%"
               max-camera-orbit="auto auto 500%">
@@ -366,26 +403,6 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
           {!modelVisible && (
             <div style={{ position:'absolute', inset:0, background:'#080910', pointerEvents:'none', zIndex:5 }} />
           )}
-
-          {/* Corner orientation gizmo — always visible */}
-          <div className="s-gizmo" aria-hidden="true">
-            <svg viewBox="0 0 80 80" width="96" height="96" xmlns="http://www.w3.org/2000/svg">
-              <circle cx="40" cy="40" r="36" fill="rgba(0,0,0,0.38)"/>
-              <line x1="40" y1="40" x2="40" y2="60"  stroke="#4ade80" strokeWidth="1" strokeOpacity="0.28" strokeDasharray="2 3"/>
-              <line x1="40" y1="40" x2="24" y2="31"  stroke="#f87171" strokeWidth="1" strokeOpacity="0.28" strokeDasharray="2 3"/>
-              <line x1="40" y1="40" x2="56" y2="31"  stroke="#60a5fa" strokeWidth="1" strokeOpacity="0.28" strokeDasharray="2 3"/>
-              <line x1="40" y1="40" x2="40" y2="19"  stroke="#4ade80" strokeWidth="2.5"/>
-              <line x1="40" y1="40" x2="60" y2="51"  stroke="#f87171" strokeWidth="2.5"/>
-              <line x1="40" y1="40" x2="20" y2="51"  stroke="#60a5fa" strokeWidth="2.5"/>
-              <polygon points="40,13 36,21 44,21"   fill="#4ade80"/>
-              <polygon points="64,53 55,52 59,46"   fill="#f87171"/>
-              <polygon points="16,53 25,52 21,46"   fill="#60a5fa"/>
-              <text x="44" y="14" fontSize="9" fill="#4ade80" fontFamily="monospace" fontWeight="800">Y</text>
-              <text x="66" y="57" fontSize="9" fill="#f87171" fontFamily="monospace" fontWeight="800">X</text>
-              <text x="2"  y="57" fontSize="9" fill="#60a5fa" fontFamily="monospace" fontWeight="800">Z</text>
-              <circle cx="40" cy="40" r="2.5" fill="rgba(255,255,255,0.75)"/>
-            </svg>
-          </div>
 
           {/* Center transform gizmo — tracks model center, rotates with camera */}
           {selected && (() => {
