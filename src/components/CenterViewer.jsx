@@ -1,6 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 import { statusText } from '../utils.js';
 
+function toFiniteVector3(v) {
+  if (!v) return null;
+  const { x, y, z } = v;
+  if (![x, y, z].every(Number.isFinite)) return null;
+  return { x, y, z };
+}
+
+function getModelBoundsCenter(mv) {
+  return toFiniteVector3(mv?.getBoundingBoxCenter?.())
+    || toFiniteVector3(mv?.getCameraTarget?.());
+}
+
 // Projects the model's 3D world-space center to screen coordinates and positions
 // the gizmo there, so it tracks the model as the camera orbits, pans, or zooms.
 // Falls back to the model-viewer element center when projection data is unavailable.
@@ -95,7 +107,7 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
       requestAnimationFrame(() => {
         const t = mv.getCameraTarget?.();
         const o = mv.getCameraOrbit?.();
-        if (t) modelCenterRef.current = { x: t.x, y: t.y, z: t.z };
+        modelCenterRef.current = getModelBoundsCenter(mv);
         if (t && o) {
           initialCamRef.current = { t, o };
           onCameraChange?.({ pos: [0, 0, 0], rot: [0, 0, 0], scl: [1, 1, 1] });
@@ -339,6 +351,7 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
           <div className="s-mv-wrapper">
             <model-viewer ref={mvRef} src={proxiedModelUrl}
               camera-controls shadow-intensity="0"
+              disable-tap
               environment-image="neutral" exposure="1" ar
               min-camera-orbit="auto auto 50%"
               max-camera-orbit="auto auto 500%">

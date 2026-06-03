@@ -17,14 +17,18 @@ const MAX_UPLOAD_SIZE = 200 * 1024 * 1024;
 const JOBS_DIR = path.join(__dirname, '..', 'storage', 'jobs');
 fs.mkdirSync(JOBS_DIR, { recursive: true });
 
-const upload = multer({
+const imageFileFilter = (_req, file, cb) => {
+  const ok = ['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype);
+  if (!ok) return cb(new Error('Chỉ hỗ trợ PNG, JPEG/JPG hoặc WEBP.'));
+  cb(null, true);
+};
+
+const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: MAX_UPLOAD_SIZE }, fileFilter: imageFileFilter });
+
+const uploadMultiview = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_UPLOAD_SIZE },
-  fileFilter: (_req, file, cb) => {
-    const ok = ['image/png', 'image/jpeg', 'image/webp'].includes(file.mimetype);
-    if (!ok) return cb(new Error('Chỉ hỗ trợ PNG, JPEG/JPG hoặc WEBP.'));
-    cb(null, true);
-  }
+  fileFilter: imageFileFilter
 });
 
 app.use(express.json({ limit: '1mb' }));
