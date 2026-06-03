@@ -41,6 +41,7 @@ function estimatedCredits(job) {
 
   let credits = withTexture ? 30 : 20;
   if (withTexture && job?.options?.textureQuality === 'detailed') credits += 10;
+  if (modelVersion.startsWith('v3') && job?.options?.geometryQuality === 'detailed') credits += 20;
   return credits;
 }
 

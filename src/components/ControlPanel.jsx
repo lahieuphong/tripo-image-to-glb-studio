@@ -144,6 +144,7 @@ function estimateGenerationCredits(options) {
 
   let credits = withTexture ? 30 : 20;
   if (withTexture && options?.textureQuality === 'detailed') credits += 10;
+  if (modelVersion.startsWith('v3') && options?.geometryQuality === 'detailed') credits += 20;
   return credits;
 }
 
