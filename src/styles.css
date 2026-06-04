@@ -1787,6 +1787,110 @@ a.nav-item {
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
 }
 
+/* ─── Viewer render mode toolbar ───────────────────────────────── */
+.s-vtb {
+  position: absolute;
+  bottom: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 1px;
+  padding: 4px 6px;
+  border-radius: 999px;
+  background: rgba(18, 20, 36, 0.84);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+}
+
+.s-vtb-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  background: transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  padding: 7px;
+  color: rgba(200, 200, 220, 0.75);
+  transition: background 140ms, color 140ms;
+}
+.s-vtb-btn:hover  { background: rgba(255, 255, 255, 0.07); color: #fff; }
+.s-vtb-btn.active { background: rgba(255, 255, 255, 0.13); color: #fff; }
+
+.s-vtb-sep {
+  width: 1px;
+  height: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* Settings panel floating above toolbar */
+.s-vtb-settings {
+  position: absolute;
+  bottom: 62px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(18, 20, 36, 0.92);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 10px 14px;
+  z-index: 11;
+  min-width: 220px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+  animation: s-vtb-fade 120ms ease;
+}
+@keyframes s-vtb-fade {
+  from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+.s-vtb-sl {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.s-vtb-sl-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--s-muted);
+  flex-shrink: 0;
+  min-width: 56px;
+}
+.s-vtb-range {
+  flex: 1;
+  height: 3px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.s-vtb-sl-val {
+  font-size: 11px;
+  font-family: monospace;
+  color: var(--s-text);
+  min-width: 30px;
+  text-align: right;
+}
+
+/* Hologram scan-line overlay */
+.s-vtb-holo-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 210, 255, 0.035) 2px,
+    rgba(0, 210, 255, 0.035) 4px
+  );
+}
+
 .s-lp-body .select-option,
 .s-adv-body .select-option {
   padding: 6px 10px;

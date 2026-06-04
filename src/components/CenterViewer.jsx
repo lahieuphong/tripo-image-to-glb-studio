@@ -34,6 +34,139 @@ function applyCameraState(mv, cameraState) {
   return true;
 }
 
+// ─── Viewer render modes ───────────────────────────────────────
+
+const ICON_SOLID = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <defs><radialGradient id="vtbi-solid" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#eeeeee"/><stop offset="100%" stopColor="#888888"/></radialGradient></defs>
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-solid)"/>
+  </svg>
+);
+const ICON_PBR = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <defs><radialGradient id="vtbi-pbr" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#c4b5fd"/><stop offset="55%" stopColor="#7c5cff"/><stop offset="100%" stopColor="#1e1040"/></radialGradient></defs>
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-pbr)"/>
+  </svg>
+);
+const ICON_SETTINGS = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
+    <line x1="2" y1="4" x2="14" y2="4"/><circle cx="5" cy="4" r="1.5" fill="currentColor" stroke="none"/>
+    <line x1="2" y1="8" x2="14" y2="8"/><circle cx="10" cy="8" r="1.5" fill="currentColor" stroke="none"/>
+    <line x1="2" y1="12" x2="14" y2="12"/><circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/>
+  </svg>
+);
+const ICON_UNLIT = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <defs><radialGradient id="vtbi-unlit" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#b0b0b0"/><stop offset="100%" stopColor="#555555"/></radialGradient></defs>
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-unlit)"/>
+  </svg>
+);
+const ICON_NORMAL = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <defs><radialGradient id="vtbi-normal" cx="45%" cy="40%" r="60%"><stop offset="0%" stopColor="#ff8aad"/><stop offset="45%" stopColor="#8aaeff"/><stop offset="100%" stopColor="#80ff90"/></radialGradient></defs>
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-normal)"/>
+  </svg>
+);
+const ICON_TOON = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <defs><radialGradient id="vtbi-toon" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#fde68a"/><stop offset="55%" stopColor="#f59e0b"/><stop offset="100%" stopColor="#7c2d12"/></radialGradient></defs>
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-toon)"/>
+  </svg>
+);
+const ICON_SKETCH = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none">
+    <circle cx="8" cy="8" r="6.5" stroke="rgba(200,200,200,0.85)" strokeWidth="1.3"/>
+    <ellipse cx="8" cy="8" rx="3.5" ry="6.5" stroke="rgba(200,200,200,0.4)" strokeWidth="0.8"/>
+    <ellipse cx="8" cy="8" rx="6.5" ry="3.5" stroke="rgba(200,200,200,0.4)" strokeWidth="0.8"/>
+  </svg>
+);
+const ICON_HOLOGRAM = (
+  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+    <defs><radialGradient id="vtbi-holo" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#b0f4ff"/><stop offset="55%" stopColor="#00c8e0"/><stop offset="100%" stopColor="#003d55"/></radialGradient></defs>
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-holo)"/>
+    <circle cx="8" cy="8" r="7" fill="none" stroke="rgba(100,240,255,0.45)" strokeWidth="0.6"/>
+  </svg>
+);
+
+const RENDER_MODES = [
+  { key: 'solid',    label: 'Solid',    icon: ICON_SOLID },
+  { key: 'pbr',      label: 'PBR',      icon: ICON_PBR },
+  { key: 'settings', label: 'Hiệu ứng', icon: ICON_SETTINGS, isSettings: true },
+  null,
+  { key: 'unlit',    label: 'Unlit',    icon: ICON_UNLIT },
+  { key: 'normal',   label: 'Normal',   icon: ICON_NORMAL },
+  { key: 'toon',     label: 'Toon',     icon: ICON_TOON },
+  { key: 'sketch',   label: 'Sketch',   icon: ICON_SKETCH },
+  { key: 'hologram', label: 'Hologram', icon: ICON_HOLOGRAM },
+];
+
+function getModeFilter(mode) {
+  switch (mode) {
+    // solid: handled via material API — no CSS filter needed
+    case 'unlit':    return 'brightness(1.22) saturate(0.55)';
+    case 'normal':   return 'hue-rotate(225deg) saturate(2.2) brightness(0.9)';
+    case 'toon':     return 'saturate(3) contrast(1.18)';
+    case 'sketch':   return 'grayscale(1) contrast(8) brightness(1.5)';
+    case 'hologram': return 'hue-rotate(190deg) saturate(5) brightness(0.52)';
+    default:         return '';
+  }
+}
+
+const SOLID_MATERIAL = {
+  baseColorFactor: '#949494',
+  metallicFactor: 0,
+  roughnessFactor: 0.9,
+};
+
+function getTexture(textureInfo) {
+  return textureInfo?.texture ?? null;
+}
+
+function setTexture(textureInfo, texture) {
+  textureInfo?.setTexture?.(texture ?? null);
+}
+
+function snapshotMaterial(mat) {
+  const pbr = mat.pbrMetallicRoughness;
+  return {
+    baseColorFactor: [...(pbr.baseColorFactor ?? [1, 1, 1, 1])],
+    baseColorTexture: getTexture(pbr.baseColorTexture),
+    metallicFactor: pbr.metallicFactor ?? 1,
+    roughnessFactor: pbr.roughnessFactor ?? 1,
+    metallicRoughnessTexture: getTexture(pbr.metallicRoughnessTexture),
+    normalTexture: getTexture(mat.normalTexture),
+    occlusionTexture: getTexture(mat.occlusionTexture),
+    emissiveTexture: getTexture(mat.emissiveTexture),
+  };
+}
+
+function applySolidMaterial(mat) {
+  const pbr = mat.pbrMetallicRoughness;
+  pbr.setBaseColorFactor(SOLID_MATERIAL.baseColorFactor);
+  pbr.setMetallicFactor(SOLID_MATERIAL.metallicFactor);
+  pbr.setRoughnessFactor(SOLID_MATERIAL.roughnessFactor);
+
+  setTexture(pbr.baseColorTexture, null);
+  setTexture(pbr.metallicRoughnessTexture, null);
+  setTexture(mat.normalTexture, null);
+  setTexture(mat.occlusionTexture, null);
+  setTexture(mat.emissiveTexture, null);
+}
+
+function restoreMaterial(mat, saved) {
+  if (!saved) return;
+  const pbr = mat.pbrMetallicRoughness;
+  pbr.setBaseColorFactor(saved.baseColorFactor);
+  pbr.setMetallicFactor(saved.metallicFactor);
+  pbr.setRoughnessFactor(saved.roughnessFactor);
+
+  setTexture(pbr.baseColorTexture, saved.baseColorTexture);
+  setTexture(pbr.metallicRoughnessTexture, saved.metallicRoughnessTexture);
+  setTexture(mat.normalTexture, saved.normalTexture);
+  setTexture(mat.occlusionTexture, saved.occlusionTexture);
+  setTexture(mat.emissiveTexture, saved.emissiveTexture);
+}
+
 // Projects the model's 3D world-space center to screen coordinates and positions
 // the gizmo there, so it tracks the model as the camera orbits, pans, or zooms.
 // Falls back to the model-viewer element center when projection data is unavailable.
@@ -114,8 +247,18 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
   const projRef           = useRef({ y:[0,-1], x:[0.866,0.501], z:[-0.866,0.501] });
   const [proj,        setProj       ] = useState(projRef.current);
   const [hoveredAxis, setHoveredAxis] = useState(null);
+  const [renderMode,   setRenderMode  ] = useState('pbr');
+  const [showSettings, setShowSettings] = useState(false);
+  const [exposure,     setExposure    ] = useState(1);
+  const savedMaterialsRef = useRef(null);
 
-  useEffect(() => { setSelected(false); }, [proxiedModelUrl]);
+  useEffect(() => {
+    setSelected(false);
+    setRenderMode('pbr');
+    setShowSettings(false);
+    setExposure(1);
+    savedMaterialsRef.current = null;
+  }, [proxiedModelUrl]);
 
   // Capture initial camera state + model center on load; seed transform at [0,0,0]/[1,1,1]
   useEffect(() => {
@@ -348,6 +491,46 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     };
   }, [selected]);
 
+  useEffect(() => {
+    const mv = mvRef.current;
+    if (mv) mv.setAttribute('exposure', String(exposure));
+  }, [exposure]);
+
+  // Solid mode is a local clay/no-texture preview. It does not create a second
+  // Tripo task; PBR restores the original material graph.
+  useEffect(() => {
+    const mv = mvRef.current;
+    if (!mv || !proxiedModelUrl) return;
+
+    function apply() {
+      const mats = mv.model?.materials;
+      if (!mats?.length) return;
+
+      if (renderMode === 'solid') {
+        if (!savedMaterialsRef.current) {
+          savedMaterialsRef.current = mats.map(snapshotMaterial);
+        }
+        mats.forEach(applySolidMaterial);
+      } else if (savedMaterialsRef.current) {
+        const saved = savedMaterialsRef.current;
+        mats.forEach((mat, i) => restoreMaterial(mat, saved[i]));
+      }
+    }
+
+    if (mv.model?.materials?.length) {
+      apply();
+    } else {
+      mv.addEventListener('load', apply, { once: true });
+      return () => mv.removeEventListener('load', apply);
+    }
+  }, [renderMode, proxiedModelUrl]);
+
+  const _modeFilter = getModeFilter(renderMode);
+  const _activeGlow = selected
+    ? 'drop-shadow(0 0 6px rgba(185,155,255,1)) drop-shadow(0 0 10px rgba(150,120,255,0.65)) drop-shadow(0 0 16px rgba(124,92,255,0.35))'
+    : '';
+  const wrapperFilter = [_modeFilter, _activeGlow].filter(Boolean).join(' ') || 'brightness(1)';
+
   function handlePointerDown(e) {
     pointerDownPos.current = { x: e.clientX, y: e.clientY };
   }
@@ -384,7 +567,7 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     >
       {proxiedModelUrl ? (
         <>
-          <div className="s-mv-wrapper">
+          <div className="s-mv-wrapper" style={{ filter: wrapperFilter }}>
             <model-viewer ref={mvRef} src={proxiedModelUrl}
               camera-controls shadow-intensity="0"
               disable-tap
@@ -454,6 +637,65 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
               ))}
             </svg>
           )}
+
+          {/* Hologram scan-line overlay */}
+          {renderMode === 'hologram' && (
+            <div className="s-vtb-holo-overlay" style={{ pointerEvents: 'none' }} />
+          )}
+
+          {/* Render mode settings panel */}
+          {showSettings && (
+            <div
+              className="s-vtb-settings"
+              onClick={(e) => e.stopPropagation()}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              <div className="s-vtb-sl">
+                <span className="s-vtb-sl-label">Độ sáng</span>
+                <input
+                  type="range" min="0.2" max="3" step="0.05"
+                  value={exposure}
+                  onChange={(e) => setExposure(Number(e.target.value))}
+                  className="s-vtb-range"
+                />
+                <span className="s-vtb-sl-val">{exposure.toFixed(2)}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Render mode toolbar */}
+          <div
+            className="s-vtb"
+            onClick={(e) => e.stopPropagation()}
+            onPointerDown={(e) => e.stopPropagation()}
+          >
+            {RENDER_MODES.map((mode, i) => {
+              if (!mode) return <div key={`sep-${i}`} className="s-vtb-sep" />;
+              if (mode.isSettings) return (
+                <button
+                  key="settings"
+                  type="button"
+                  className={`s-vtb-btn${showSettings ? ' active' : ''}`}
+                  title={mode.label}
+                  onClick={() => setShowSettings(v => !v)}
+                >
+                  {mode.icon}
+                </button>
+              );
+              return (
+                <button
+                  key={mode.key}
+                  type="button"
+                  className={`s-vtb-btn${renderMode === mode.key ? ' active' : ''}`}
+                  title={mode.label}
+                  onClick={() => { setRenderMode(mode.key); setShowSettings(false); }}
+                  aria-pressed={renderMode === mode.key}
+                >
+                  {mode.icon}
+                </button>
+              );
+            })}
+          </div>
         </>
       ) : (
         <div className="s-center-empty">
