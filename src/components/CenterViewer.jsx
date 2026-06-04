@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import { MeshNormalMaterial } from 'three';
-import { $scene } from '@google/model-viewer/lib/model-viewer-base.js';
 import { statusText } from '../utils.js';
+import { NORMAL_MODE, applyNormalMode, clearNormalMode } from './viewerModes/NormalMode.jsx';
+import { SOLID_VIEW_MODE, applySolidViewMode } from './viewerModes/SolidViewMode.jsx';
+import { TEXTURED_VIEW_MODE, applyTexturedViewMode } from './viewerModes/TexturedViewMode.jsx';
 
 function toFiniteVector3(v) {
   if (!v) return null;
@@ -38,18 +39,6 @@ function applyCameraState(mv, cameraState) {
 
 // ─── Viewer render modes ───────────────────────────────────────
 
-const ICON_SOLID = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs><radialGradient id="vtbi-solid" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#eeeeee"/><stop offset="100%" stopColor="#888888"/></radialGradient></defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-solid)"/>
-  </svg>
-);
-const ICON_PBR = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs><radialGradient id="vtbi-pbr" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#c4b5fd"/><stop offset="55%" stopColor="#7c5cff"/><stop offset="100%" stopColor="#1e1040"/></radialGradient></defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-pbr)"/>
-  </svg>
-);
 const ICON_SETTINGS = (
   <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
     <line x1="2" y1="4" x2="14" y2="4"/><circle cx="5" cy="4" r="1.5" fill="currentColor" stroke="none"/>
@@ -61,12 +50,6 @@ const ICON_UNLIT = (
   <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
     <defs><radialGradient id="vtbi-unlit" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#b0b0b0"/><stop offset="100%" stopColor="#555555"/></radialGradient></defs>
     <circle cx="8" cy="8" r="7" fill="url(#vtbi-unlit)"/>
-  </svg>
-);
-const ICON_NORMAL = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs><radialGradient id="vtbi-normal" cx="45%" cy="40%" r="60%"><stop offset="0%" stopColor="#ff8aad"/><stop offset="45%" stopColor="#8aaeff"/><stop offset="100%" stopColor="#80ff90"/></radialGradient></defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-normal)"/>
   </svg>
 );
 const ICON_TOON = (
@@ -91,12 +74,12 @@ const ICON_HOLOGRAM = (
 );
 
 const RENDER_MODES = [
-  { key: 'solid',    label: 'Solid',    icon: ICON_SOLID },
-  { key: 'pbr',      label: 'PBR',      icon: ICON_PBR },
+  SOLID_VIEW_MODE,
+  TEXTURED_VIEW_MODE,
   { key: 'settings', label: 'Hiệu ứng', icon: ICON_SETTINGS, isSettings: true },
   null,
   { key: 'unlit',    label: 'Unlit',    icon: ICON_UNLIT },
-  { key: 'normal',   label: 'Normal',   icon: ICON_NORMAL },
+  NORMAL_MODE,
   { key: 'toon',     label: 'Toon',     icon: ICON_TOON },
   { key: 'sketch',   label: 'Sketch',   icon: ICON_SKETCH },
   { key: 'hologram', label: 'Hologram', icon: ICON_HOLOGRAM },
@@ -111,94 +94,6 @@ function getModeFilter(mode) {
     case 'hologram': return 'hue-rotate(190deg) saturate(5) brightness(0.52)';
     default:         return '';
   }
-}
-
-const SOLID_MATERIAL = {
-  baseColorFactor: '#949494',
-  metallicFactor: 0,
-  roughnessFactor: 0.9,
-};
-
-function getTexture(textureInfo) {
-  return textureInfo?.texture ?? null;
-}
-
-function setTexture(textureInfo, texture) {
-  textureInfo?.setTexture?.(texture ?? null);
-}
-
-function snapshotMaterial(mat) {
-  const pbr = mat.pbrMetallicRoughness;
-  return {
-    baseColorFactor: [...(pbr.baseColorFactor ?? [1, 1, 1, 1])],
-    baseColorTexture: getTexture(pbr.baseColorTexture),
-    metallicFactor: pbr.metallicFactor ?? 1,
-    roughnessFactor: pbr.roughnessFactor ?? 1,
-    metallicRoughnessTexture: getTexture(pbr.metallicRoughnessTexture),
-    normalTexture: getTexture(mat.normalTexture),
-    occlusionTexture: getTexture(mat.occlusionTexture),
-    emissiveTexture: getTexture(mat.emissiveTexture),
-  };
-}
-
-function applySolidMaterial(mat) {
-  const pbr = mat.pbrMetallicRoughness;
-  pbr.setBaseColorFactor(SOLID_MATERIAL.baseColorFactor);
-  pbr.setMetallicFactor(SOLID_MATERIAL.metallicFactor);
-  pbr.setRoughnessFactor(SOLID_MATERIAL.roughnessFactor);
-
-  setTexture(pbr.baseColorTexture, null);
-  setTexture(pbr.metallicRoughnessTexture, null);
-  setTexture(mat.normalTexture, null);
-  setTexture(mat.occlusionTexture, null);
-  setTexture(mat.emissiveTexture, null);
-}
-
-function createNormalPreview(mv) {
-  const model = mv?.[$scene]?.model;
-  if (!model) return null;
-
-  const entries = [];
-  model.traverse((node) => {
-    if (!node?.isMesh || !node.material) return;
-    const original = node.material;
-    const materials = Array.isArray(original) ? original : [original];
-    const normalMaterials = materials.map((mat) => new MeshNormalMaterial({
-      side: mat.side,
-      transparent: mat.transparent,
-      opacity: mat.opacity,
-      alphaTest: mat.alphaTest,
-    }));
-
-    node.material = Array.isArray(original) ? normalMaterials : normalMaterials[0];
-    entries.push({ node, original, normalMaterials });
-  });
-
-  mv[$scene]?.queueRender?.();
-  return entries.length ? entries : null;
-}
-
-function clearNormalPreview(mv, entries) {
-  if (!entries?.length) return;
-  entries.forEach(({ node, original, normalMaterials }) => {
-    node.material = original;
-    normalMaterials.forEach((mat) => mat.dispose());
-  });
-  mv?.[$scene]?.queueRender?.();
-}
-
-function restoreMaterial(mat, saved) {
-  if (!saved) return;
-  const pbr = mat.pbrMetallicRoughness;
-  pbr.setBaseColorFactor(saved.baseColorFactor);
-  pbr.setMetallicFactor(saved.metallicFactor);
-  pbr.setRoughnessFactor(saved.roughnessFactor);
-
-  setTexture(pbr.baseColorTexture, saved.baseColorTexture);
-  setTexture(pbr.metallicRoughnessTexture, saved.metallicRoughnessTexture);
-  setTexture(mat.normalTexture, saved.normalTexture);
-  setTexture(mat.occlusionTexture, saved.occlusionTexture);
-  setTexture(mat.emissiveTexture, saved.emissiveTexture);
 }
 
 // Projects the model's 3D world-space center to screen coordinates and positions
@@ -288,8 +183,7 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
   const normalPreviewRef = useRef(null);
 
   useEffect(() => {
-    clearNormalPreview(mvRef.current, normalPreviewRef.current);
-    normalPreviewRef.current = null;
+    clearNormalMode(mvRef.current, normalPreviewRef);
     setSelected(false);
     setRenderMode('pbr');
     setShowSettings(false);
@@ -533,36 +427,26 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     if (mv) mv.setAttribute('exposure', String(exposure));
   }, [exposure]);
 
-  // Solid/Normal are local material previews. They do not create a second
-  // Tripo task; PBR restores the original material graph.
+  // Solid view/Normal are local material previews. They do not create a second
+  // Tripo task; Textured view restores the original material graph.
   useEffect(() => {
     const mv = mvRef.current;
     if (!mv || !proxiedModelUrl) return;
 
     function apply() {
-      if (renderMode !== 'normal' && normalPreviewRef.current) {
-        clearNormalPreview(mv, normalPreviewRef.current);
-        normalPreviewRef.current = null;
+      if (renderMode !== NORMAL_MODE.key) {
+        clearNormalMode(mv, normalPreviewRef);
       }
 
       const mats = mv.model?.materials;
       if (!mats?.length) return;
 
-      if (renderMode === 'solid') {
-        if (!savedMaterialsRef.current) {
-          savedMaterialsRef.current = mats.map(snapshotMaterial);
-        }
-        mats.forEach(applySolidMaterial);
-      } else if (renderMode === 'normal') {
-        if (!savedMaterialsRef.current) {
-          savedMaterialsRef.current = mats.map(snapshotMaterial);
-        }
-        const saved = savedMaterialsRef.current;
-        mats.forEach((mat, i) => restoreMaterial(mat, saved[i]));
-        normalPreviewRef.current = createNormalPreview(mv);
-      } else if (savedMaterialsRef.current) {
-        const saved = savedMaterialsRef.current;
-        mats.forEach((mat, i) => restoreMaterial(mat, saved[i]));
+      if (renderMode === SOLID_VIEW_MODE.key) {
+        applySolidViewMode(mats, savedMaterialsRef);
+      } else if (renderMode === NORMAL_MODE.key) {
+        applyNormalMode(mv, mats, savedMaterialsRef, normalPreviewRef);
+      } else {
+        applyTexturedViewMode(mats, savedMaterialsRef);
       }
     }
 
