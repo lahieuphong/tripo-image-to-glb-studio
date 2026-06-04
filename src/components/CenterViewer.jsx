@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { MeshNormalMaterial } from 'three';
+import { $scene } from '@google/model-viewer/lib/model-viewer-base.js';
 import { statusText } from '../utils.js';
 
 function toFiniteVector3(v) {
@@ -104,7 +106,6 @@ function getModeFilter(mode) {
   switch (mode) {
     // solid: handled via material API — no CSS filter needed
     case 'unlit':    return 'brightness(1.22) saturate(0.55)';
-    case 'normal':   return 'hue-rotate(225deg) saturate(2.2) brightness(0.9)';
     case 'toon':     return 'saturate(3) contrast(1.18)';
     case 'sketch':   return 'grayscale(1) contrast(8) brightness(1.5)';
     case 'hologram': return 'hue-rotate(190deg) saturate(5) brightness(0.52)';
@@ -151,6 +152,39 @@ function applySolidMaterial(mat) {
   setTexture(mat.normalTexture, null);
   setTexture(mat.occlusionTexture, null);
   setTexture(mat.emissiveTexture, null);
+}
+
+function createNormalPreview(mv) {
+  const model = mv?.[$scene]?.model;
+  if (!model) return null;
+
+  const entries = [];
+  model.traverse((node) => {
+    if (!node?.isMesh || !node.material) return;
+    const original = node.material;
+    const materials = Array.isArray(original) ? original : [original];
+    const normalMaterials = materials.map((mat) => new MeshNormalMaterial({
+      side: mat.side,
+      transparent: mat.transparent,
+      opacity: mat.opacity,
+      alphaTest: mat.alphaTest,
+    }));
+
+    node.material = Array.isArray(original) ? normalMaterials : normalMaterials[0];
+    entries.push({ node, original, normalMaterials });
+  });
+
+  mv[$scene]?.queueRender?.();
+  return entries.length ? entries : null;
+}
+
+function clearNormalPreview(mv, entries) {
+  if (!entries?.length) return;
+  entries.forEach(({ node, original, normalMaterials }) => {
+    node.material = original;
+    normalMaterials.forEach((mat) => mat.dispose());
+  });
+  mv?.[$scene]?.queueRender?.();
 }
 
 function restoreMaterial(mat, saved) {
@@ -251,8 +285,11 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
   const [showSettings, setShowSettings] = useState(false);
   const [exposure,     setExposure    ] = useState(1);
   const savedMaterialsRef = useRef(null);
+  const normalPreviewRef = useRef(null);
 
   useEffect(() => {
+    clearNormalPreview(mvRef.current, normalPreviewRef.current);
+    normalPreviewRef.current = null;
     setSelected(false);
     setRenderMode('pbr');
     setShowSettings(false);
@@ -496,13 +533,18 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     if (mv) mv.setAttribute('exposure', String(exposure));
   }, [exposure]);
 
-  // Solid mode is a local clay/no-texture preview. It does not create a second
+  // Solid/Normal are local material previews. They do not create a second
   // Tripo task; PBR restores the original material graph.
   useEffect(() => {
     const mv = mvRef.current;
     if (!mv || !proxiedModelUrl) return;
 
     function apply() {
+      if (renderMode !== 'normal' && normalPreviewRef.current) {
+        clearNormalPreview(mv, normalPreviewRef.current);
+        normalPreviewRef.current = null;
+      }
+
       const mats = mv.model?.materials;
       if (!mats?.length) return;
 
@@ -511,6 +553,13 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
           savedMaterialsRef.current = mats.map(snapshotMaterial);
         }
         mats.forEach(applySolidMaterial);
+      } else if (renderMode === 'normal') {
+        if (!savedMaterialsRef.current) {
+          savedMaterialsRef.current = mats.map(snapshotMaterial);
+        }
+        const saved = savedMaterialsRef.current;
+        mats.forEach((mat, i) => restoreMaterial(mat, saved[i]));
+        normalPreviewRef.current = createNormalPreview(mv);
       } else if (savedMaterialsRef.current) {
         const saved = savedMaterialsRef.current;
         mats.forEach((mat, i) => restoreMaterial(mat, saved[i]));
