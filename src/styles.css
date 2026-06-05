@@ -1512,9 +1512,7 @@ a.nav-item {
 
 /* center viewer */
 .s-center {
-  flex:1; background:var(--s-bg); min-width:0; position:relative; overflow:hidden;
-  background-image:linear-gradient(rgba(255,255,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.018) 1px,transparent 1px);
-  background-size:40px 40px;
+  flex:1; background:radial-gradient(ellipse at center, #1e1e1e 0%, #0f0f0f 100%); min-width:0; position:relative; overflow:hidden;
   transition: box-shadow 400ms ease;
 }
 
