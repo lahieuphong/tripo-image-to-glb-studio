@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { statusText } from '../utils.js';
+import { CARTOON_STYLE_MODE, applyCartoonStyleMode, clearCartoonStyleMode } from './viewerModes/CartoonStyleMode.jsx';
 import { NORMAL_MODE, applyNormalMode, clearNormalMode } from './viewerModes/NormalMode.jsx';
 import { SOLID_VIEW_MODE, applySolidViewMode } from './viewerModes/SolidViewMode.jsx';
 import { TEXTURED_VIEW_MODE, applyTexturedViewMode } from './viewerModes/TexturedViewMode.jsx';
@@ -52,12 +53,6 @@ const ICON_UNLIT = (
     <circle cx="8" cy="8" r="7" fill="url(#vtbi-unlit)"/>
   </svg>
 );
-const ICON_TOON = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs><radialGradient id="vtbi-toon" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#fde68a"/><stop offset="55%" stopColor="#f59e0b"/><stop offset="100%" stopColor="#7c2d12"/></radialGradient></defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-toon)"/>
-  </svg>
-);
 const ICON_SKETCH = (
   <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none">
     <circle cx="8" cy="8" r="6.5" stroke="rgba(200,200,200,0.85)" strokeWidth="1.3"/>
@@ -80,16 +75,18 @@ const RENDER_MODES = [
   null,
   { key: 'unlit',    label: 'Unlit',    icon: ICON_UNLIT },
   NORMAL_MODE,
-  { key: 'toon',     label: 'Toon',     icon: ICON_TOON },
+  CARTOON_STYLE_MODE,
   { key: 'sketch',   label: 'Sketch',   icon: ICON_SKETCH },
   { key: 'hologram', label: 'Hologram', icon: ICON_HOLOGRAM },
 ];
 
 function getModeFilter(mode) {
+  const configuredMode = RENDER_MODES.filter(Boolean).find((item) => item.key === mode);
+  if (configuredMode?.filter) return configuredMode.filter;
+
   switch (mode) {
     // solid: handled via material API — no CSS filter needed
     case 'unlit':    return 'brightness(1.22) saturate(0.55)';
-    case 'toon':     return 'saturate(3) contrast(1.18)';
     case 'sketch':   return 'grayscale(1) contrast(8) brightness(1.5)';
     case 'hologram': return 'hue-rotate(190deg) saturate(5) brightness(0.52)';
     default:         return '';
@@ -180,9 +177,11 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
   const [showSettings, setShowSettings] = useState(false);
   const [exposure,     setExposure    ] = useState(1);
   const savedMaterialsRef = useRef(null);
+  const cartoonStylePreviewRef = useRef(null);
   const normalPreviewRef = useRef(null);
 
   useEffect(() => {
+    clearCartoonStyleMode(mvRef.current, cartoonStylePreviewRef);
     clearNormalMode(mvRef.current, normalPreviewRef);
     setSelected(false);
     setRenderMode('pbr');
@@ -427,8 +426,8 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     if (mv) mv.setAttribute('exposure', String(exposure));
   }, [exposure]);
 
-  // Solid view/Normal are local material previews. They do not create a second
-  // Tripo task; Textured view restores the original material graph.
+  // Solid view/Normal/Cartoon Style are local material previews. They do not
+  // create a second Tripo task; Textured view restores the original material graph.
   useEffect(() => {
     const mv = mvRef.current;
     if (!mv || !proxiedModelUrl) return;
@@ -436,6 +435,9 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
     function apply() {
       if (renderMode !== NORMAL_MODE.key) {
         clearNormalMode(mv, normalPreviewRef);
+      }
+      if (renderMode !== CARTOON_STYLE_MODE.key) {
+        clearCartoonStyleMode(mv, cartoonStylePreviewRef);
       }
 
       const mats = mv.model?.materials;
@@ -445,6 +447,8 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
         applySolidViewMode(mats, savedMaterialsRef);
       } else if (renderMode === NORMAL_MODE.key) {
         applyNormalMode(mv, mats, savedMaterialsRef, normalPreviewRef);
+      } else if (renderMode === CARTOON_STYLE_MODE.key) {
+        applyCartoonStyleMode(mv, mats, savedMaterialsRef, cartoonStylePreviewRef);
       } else {
         applyTexturedViewMode(mats, savedMaterialsRef);
       }
