@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { statusText } from '../utils.js';
 import { CARTOON_STYLE_MODE, applyCartoonStyleMode, clearCartoonStyleMode } from './viewerModes/CartoonStyleMode.jsx';
 import { NORMAL_MODE, applyNormalMode, clearNormalMode } from './viewerModes/NormalMode.jsx';
+import { SKETCH_STYLE_MODE, applySketchStyleMode, clearSketchStyleMode } from './viewerModes/SketchStyleMode.jsx';
 import { SOLID_VIEW_MODE, applySolidViewMode } from './viewerModes/SolidViewMode.jsx';
 import { TEXTURED_VIEW_MODE, applyTexturedViewMode } from './viewerModes/TexturedViewMode.jsx';
 
@@ -53,13 +54,6 @@ const ICON_UNLIT = (
     <circle cx="8" cy="8" r="7" fill="url(#vtbi-unlit)"/>
   </svg>
 );
-const ICON_SKETCH = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none">
-    <circle cx="8" cy="8" r="6.5" stroke="rgba(200,200,200,0.85)" strokeWidth="1.3"/>
-    <ellipse cx="8" cy="8" rx="3.5" ry="6.5" stroke="rgba(200,200,200,0.4)" strokeWidth="0.8"/>
-    <ellipse cx="8" cy="8" rx="6.5" ry="3.5" stroke="rgba(200,200,200,0.4)" strokeWidth="0.8"/>
-  </svg>
-);
 const ICON_HOLOGRAM = (
   <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
     <defs><radialGradient id="vtbi-holo" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#b0f4ff"/><stop offset="55%" stopColor="#00c8e0"/><stop offset="100%" stopColor="#003d55"/></radialGradient></defs>
@@ -76,7 +70,7 @@ const RENDER_MODES = [
   { key: 'unlit',    label: 'Unlit',    icon: ICON_UNLIT },
   NORMAL_MODE,
   CARTOON_STYLE_MODE,
-  { key: 'sketch',   label: 'Sketch',   icon: ICON_SKETCH },
+  SKETCH_STYLE_MODE,
   { key: 'hologram', label: 'Hologram', icon: ICON_HOLOGRAM },
 ];
 
@@ -87,7 +81,6 @@ function getModeFilter(mode) {
   switch (mode) {
     // solid: handled via material API — no CSS filter needed
     case 'unlit':    return 'brightness(1.22) saturate(0.55)';
-    case 'sketch':   return 'grayscale(1) contrast(8) brightness(1.5)';
     case 'hologram': return 'hue-rotate(190deg) saturate(5) brightness(0.52)';
     default:         return '';
   }
@@ -179,10 +172,12 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
   const savedMaterialsRef = useRef(null);
   const cartoonStylePreviewRef = useRef(null);
   const normalPreviewRef = useRef(null);
+  const sketchStylePreviewRef = useRef(null);
 
   useEffect(() => {
     clearCartoonStyleMode(mvRef.current, cartoonStylePreviewRef);
     clearNormalMode(mvRef.current, normalPreviewRef);
+    clearSketchStyleMode(mvRef.current, sketchStylePreviewRef);
     setSelected(false);
     setRenderMode('pbr');
     setShowSettings(false);
@@ -439,6 +434,9 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
       if (renderMode !== CARTOON_STYLE_MODE.key) {
         clearCartoonStyleMode(mv, cartoonStylePreviewRef);
       }
+      if (renderMode !== SKETCH_STYLE_MODE.key) {
+        clearSketchStyleMode(mv, sketchStylePreviewRef);
+      }
 
       const mats = mv.model?.materials;
       if (!mats?.length) return;
@@ -449,6 +447,8 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
         applyNormalMode(mv, mats, savedMaterialsRef, normalPreviewRef);
       } else if (renderMode === CARTOON_STYLE_MODE.key) {
         applyCartoonStyleMode(mv, mats, savedMaterialsRef, cartoonStylePreviewRef);
+      } else if (renderMode === SKETCH_STYLE_MODE.key) {
+        applySketchStyleMode(mv, mats, savedMaterialsRef, sketchStylePreviewRef);
       } else {
         applyTexturedViewMode(mats, savedMaterialsRef);
       }
@@ -463,7 +463,7 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
   }, [renderMode, proxiedModelUrl]);
 
   const _modeFilter = getModeFilter(renderMode);
-  const _activeGlow = selected
+  const _activeGlow = selected && renderMode !== SKETCH_STYLE_MODE.key
     ? 'drop-shadow(0 0 6px rgba(185,155,255,1)) drop-shadow(0 0 10px rgba(150,120,255,0.65)) drop-shadow(0 0 16px rgba(124,92,255,0.35))'
     : '';
   const wrapperFilter = [_modeFilter, _activeGlow].filter(Boolean).join(' ') || 'brightness(1)';
@@ -498,7 +498,7 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
   return (
     <div
       ref={containerRef}
-      className={`s-center${proxiedModelUrl && selected ? ' s-center-active' : ''}`}
+      className={`s-center${proxiedModelUrl && selected ? ' s-center-active' : ''}${renderMode === SKETCH_STYLE_MODE.key ? ' s-center-sketch' : ''}`}
       onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
@@ -613,7 +613,8 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
                   key="settings"
                   type="button"
                   className={`s-vtb-btn${showSettings ? ' active' : ''}`}
-                  title={mode.label}
+                  aria-label={mode.label}
+                  data-tooltip={mode.label}
                   onClick={() => setShowSettings(v => !v)}
                 >
                   {mode.icon}
@@ -624,7 +625,8 @@ export default function CenterViewer({ proxiedModelUrl, normalized, loading, cur
                   key={mode.key}
                   type="button"
                   className={`s-vtb-btn${renderMode === mode.key ? ' active' : ''}`}
-                  title={mode.label}
+                  aria-label={mode.label}
+                  data-tooltip={mode.label}
                   onClick={() => { setRenderMode(mode.key); setShowSettings(false); }}
                   aria-pressed={renderMode === mode.key}
                 >
