@@ -1913,20 +1913,6 @@ a.nav-item {
   text-align: right;
 }
 
-/* Hologram scan-line overlay */
-.s-vtb-holo-overlay {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 210, 255, 0.035) 2px,
-    rgba(0, 210, 255, 0.035) 4px
-  );
-}
-
 .s-lp-body .select-option,
 .s-adv-body .select-option {
   padding: 6px 10px;
