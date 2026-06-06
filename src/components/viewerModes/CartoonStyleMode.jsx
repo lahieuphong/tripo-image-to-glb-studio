@@ -28,18 +28,15 @@ CARTOON_GRADIENT_MAP.magFilter = NearestFilter;
 CARTOON_GRADIENT_MAP.needsUpdate = true;
 
 const ICON_CARTOON_STYLE = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs>
-      <radialGradient id="vtbi-cartoon-style" cx="38%" cy="30%" r="68%">
-        <stop offset="0%" stopColor="#ffe9a8"/>
-        <stop offset="42%" stopColor="#f59e0b"/>
-        <stop offset="78%" stopColor="#9a3412"/>
-        <stop offset="100%" stopColor="#2a1208"/>
-      </radialGradient>
-    </defs>
-    <circle cx="8" cy="8" r="6.8" fill="url(#vtbi-cartoon-style)" stroke="rgba(20,20,20,0.55)" strokeWidth="0.9"/>
-    <path d="M4.4 10.4c2.2 1.3 5.2 1 7.2-.9" fill="none" stroke="rgba(20,20,20,0.55)" strokeWidth="0.8" strokeLinecap="round"/>
-  </svg>
+  <img
+    className="s-vtb-icon-img"
+    src="/viewers/cartoon.svg"
+    width="16"
+    height="16"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
 );
 
 export const CARTOON_STYLE_MODE = {

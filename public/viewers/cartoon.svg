@@ -1,0 +1,14 @@
+<svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="vtbi-cartoon-style" cx="38%" cy="30%" r="68%">
+      <stop offset="0%" stop-color="#ffe9a8"/>
+      <stop offset="42%" stop-color="#f59e0b"/>
+      <stop offset="78%" stop-color="#9a3412"/>
+      <stop offset="100%" stop-color="#2a1208"/>
+    </radialGradient>
+  </defs>
+  <g transform="scale(2.75)">
+    <circle cx="8" cy="8" r="6.8" fill="url(#vtbi-cartoon-style)" stroke="rgba(20,20,20,0.55)" stroke-width="0.9"/>
+    <path d="M4.4 10.4c2.2 1.3 5.2 1 7.2-.9" fill="none" stroke="rgba(20,20,20,0.55)" stroke-width="0.8" stroke-linecap="round"/>
+  </g>
+</svg>

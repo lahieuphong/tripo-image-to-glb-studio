@@ -20,17 +20,15 @@ const HOLOGRAM_SWEEP_SPEED = 0.34;
 const FALLBACK_BOUNDS = { minY: -1.25, height: 2.5 };
 
 const ICON_HOLOGRAM = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs>
-      <radialGradient id="vtbi-holo" cx="38%" cy="32%" r="65%">
-        <stop offset="0%" stopColor="#d7ffff"/>
-        <stop offset="45%" stopColor="#78f4f3"/>
-        <stop offset="100%" stopColor="#168dc5"/>
-      </radialGradient>
-    </defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-holo)"/>
-    <circle cx="8" cy="8" r="7" fill="none" stroke="rgba(190,255,255,0.7)" strokeWidth="0.6"/>
-  </svg>
+  <img
+    className="s-vtb-icon-img"
+    src="/viewers/hologram.svg"
+    width="16"
+    height="16"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
 );
 
 export const HOLOGRAM_MODE = {

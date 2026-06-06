@@ -1,0 +1,35 @@
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="sketch-base" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(14 12) rotate(47) scale(32)">
+      <stop stop-color="#F7F7F2"/>
+      <stop offset="0.18" stop-color="#D8D8D3"/>
+      <stop offset="0.48" stop-color="#8F8F8C"/>
+      <stop offset="0.74" stop-color="#55565A"/>
+      <stop offset="1" stop-color="#23252A"/>
+    </radialGradient>
+    <linearGradient id="sketch-shine" x1="9" y1="8" x2="24" y2="20" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.9"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </linearGradient>
+    <clipPath id="sketch-clip">
+      <circle cx="22" cy="22" r="19"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#sketch-clip)">
+    <circle cx="22" cy="22" r="19" fill="url(#sketch-base)"/>
+    <path d="M5.5 28.5C8.8 19.2 17.6 9.8 31.4 4.5" stroke="#F3F3EF" stroke-width="2.4" stroke-linecap="round" opacity="0.56"/>
+    <path d="M8.5 34.5C13.4 23.8 24 13.4 37.5 9.5" stroke="#C8C8C5" stroke-width="1.7" stroke-linecap="round" opacity="0.62"/>
+    <path d="M13.5 39C19.6 27.4 29.4 18.5 41.5 14.5" stroke="#9D9D9D" stroke-width="1.4" stroke-linecap="round" opacity="0.62"/>
+    <path d="M22 41.5C26.8 33.2 33.2 26.7 41 22.8" stroke="#777A80" stroke-width="1.25" stroke-linecap="round" opacity="0.72"/>
+    <path d="M4.5 24.5C11 26.7 17.2 25.7 22.8 21.6" stroke="#17191F" stroke-width="1.45" stroke-linecap="round" opacity="0.55"/>
+    <path d="M14 7C20.3 11.2 28.2 12.6 38.2 10.8" stroke="#17191F" stroke-width="1.2" stroke-linecap="round" opacity="0.38"/>
+    <path d="M24 6.2L9 31.8" stroke="#111319" stroke-width="1.1" stroke-linecap="round" opacity="0.4"/>
+    <path d="M29.5 8.2L13.2 37" stroke="#111319" stroke-width="1.05" stroke-linecap="round" opacity="0.43"/>
+    <path d="M34.5 12L20.5 39.4" stroke="#111319" stroke-width="1.05" stroke-linecap="round" opacity="0.42"/>
+    <path d="M38.5 17.2L27.6 39.2" stroke="#111319" stroke-width="1" stroke-linecap="round" opacity="0.4"/>
+    <ellipse cx="12.9" cy="13.4" rx="8.3" ry="5.9" transform="rotate(-42 12.9 13.4)" fill="url(#sketch-shine)"/>
+    <path d="M6.8 17.5C7.8 11.6 12.6 6.8 18.4 5.6" stroke="#FFFFFF" stroke-width="1.2" stroke-linecap="round" opacity="0.82"/>
+  </g>
+  <circle cx="22" cy="22" r="19" stroke="#101218" stroke-width="2"/>
+  <circle cx="22" cy="22" r="18" stroke="#FFFFFF" stroke-width="0.85" opacity="0.34"/>
+</svg>

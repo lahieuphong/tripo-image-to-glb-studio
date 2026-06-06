@@ -7,10 +7,15 @@ const SOLID_MATERIAL = {
 };
 
 const ICON_SOLID = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs><radialGradient id="vtbi-solid" cx="38%" cy="32%" r="65%"><stop offset="0%" stopColor="#eeeeee"/><stop offset="100%" stopColor="#888888"/></radialGradient></defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-solid)"/>
-  </svg>
+  <img
+    className="s-vtb-icon-img"
+    src="/viewers/solid.svg"
+    width="16"
+    height="16"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
 );
 
 export const SOLID_VIEW_MODE = {

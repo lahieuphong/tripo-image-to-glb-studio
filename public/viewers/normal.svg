@@ -1,0 +1,12 @@
+<svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="vtbi-normal" cx="45%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#ff8aad"/>
+      <stop offset="45%" stop-color="#8aaeff"/>
+      <stop offset="100%" stop-color="#80ff90"/>
+    </radialGradient>
+  </defs>
+  <g transform="scale(2.75)">
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-normal)"/>
+  </g>
+</svg>

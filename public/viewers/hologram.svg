@@ -1,0 +1,13 @@
+<svg width="44" height="44" viewBox="0 0 44 44" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="vtbi-holo" cx="38%" cy="32%" r="65%">
+      <stop offset="0%" stop-color="#d7ffff"/>
+      <stop offset="45%" stop-color="#78f4f3"/>
+      <stop offset="100%" stop-color="#168dc5"/>
+    </radialGradient>
+  </defs>
+  <g transform="scale(2.75)">
+    <circle cx="8" cy="8" r="7" fill="url(#vtbi-holo)"/>
+    <circle cx="8" cy="8" r="7" fill="none" stroke="rgba(190,255,255,0.7)" stroke-width="0.6"/>
+  </g>
+</svg>

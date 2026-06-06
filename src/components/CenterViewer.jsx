@@ -43,17 +43,26 @@ function applyCameraState(mv, cameraState) {
 // ─── Viewer render modes ───────────────────────────────────────
 
 const ICON_SETTINGS = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round">
-    <line x1="2" y1="4" x2="14" y2="4"/><circle cx="5" cy="4" r="1.5" fill="currentColor" stroke="none"/>
-    <line x1="2" y1="8" x2="14" y2="8"/><circle cx="10" cy="8" r="1.5" fill="currentColor" stroke="none"/>
-    <line x1="2" y1="12" x2="14" y2="12"/><circle cx="6" cy="12" r="1.5" fill="currentColor" stroke="none"/>
-  </svg>
+  <img
+    className="s-vtb-icon-img"
+    src="/viewers/settings.svg"
+    width="16"
+    height="16"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
 );
 const ICON_UNLIT = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs><radialGradient id="vtbi-unlit" cx="50%" cy="50%" r="50%"><stop offset="0%" stopColor="#b0b0b0"/><stop offset="100%" stopColor="#555555"/></radialGradient></defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-unlit)"/>
-  </svg>
+  <img
+    className="s-vtb-icon-img"
+    src="/viewers/unlit.svg"
+    width="16"
+    height="16"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
 );
 const RENDER_MODES = [
   SOLID_VIEW_MODE,

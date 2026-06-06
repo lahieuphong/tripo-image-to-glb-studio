@@ -34,7 +34,7 @@ SKETCH_GRADIENT_MAP.needsUpdate = true;
 const ICON_SKETCH_STYLE = (
   <img
     className="s-vtb-icon-img"
-    src="/icons/sketch.png"
+    src="/viewers/sketch.svg"
     width="16"
     height="16"
     alt=""

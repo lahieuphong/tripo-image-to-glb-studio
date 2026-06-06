@@ -3,10 +3,15 @@ import { $scene } from '@google/model-viewer/lib/model-viewer-base.js';
 import { ensureMaterialSnapshots, restoreMaterial } from './materialState.js';
 
 const ICON_NORMAL = (
-  <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
-    <defs><radialGradient id="vtbi-normal" cx="45%" cy="40%" r="60%"><stop offset="0%" stopColor="#ff8aad"/><stop offset="45%" stopColor="#8aaeff"/><stop offset="100%" stopColor="#80ff90"/></radialGradient></defs>
-    <circle cx="8" cy="8" r="7" fill="url(#vtbi-normal)"/>
-  </svg>
+  <img
+    className="s-vtb-icon-img"
+    src="/viewers/normal.svg"
+    width="16"
+    height="16"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
 );
 
 export const NORMAL_MODE = {
