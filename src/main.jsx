@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import '@google/model-viewer';
-import App from './App.jsx';
+import GeneratePage from './pages/GeneratePage.jsx';
 import JobsPage from './pages/JobsPage.jsx';
 import PricingPage from './pages/PricingPage.jsx';
 import './styles.css';
@@ -13,6 +13,6 @@ const isJobsList = path === '/jobs'
 
 createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    {isPricing ? <PricingPage /> : isJobsList ? <JobsPage /> : <App />}
+    {isPricing ? <PricingPage /> : isJobsList ? <JobsPage /> : <GeneratePage />}
   </React.StrictMode>
 );

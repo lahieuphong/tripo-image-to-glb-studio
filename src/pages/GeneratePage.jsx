@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { MODELS, FINAL_STATUSES } from './constants.js';
-import { wait, outputFromTaskResponse, isCreditErrorMessage } from './utils.js';
-import CreditErrorModal from './components/CreditErrorModal.jsx';
-import TopBar from './components/TopBar.jsx';
-import IconSidebar from './components/IconSidebar.jsx';
-import ControlPanel from './components/ControlPanel.jsx';
-import CenterViewer from './components/CenterViewer.jsx';
-import RightPanel from './components/RightPanel.jsx';
+import { MODELS, FINAL_STATUSES } from '../constants.js';
+import { wait, outputFromTaskResponse, isCreditErrorMessage } from '../utils.js';
+import CreditErrorModal from '../components/CreditErrorModal.jsx';
+import TopBar from '../components/TopBar.jsx';
+import IconSidebar from '../components/IconSidebar.jsx';
+import ControlPanel from '../components/ControlPanel.jsx';
+import CenterViewer from '../components/CenterViewer.jsx';
+import RightPanel from '../components/RightPanel.jsx';
 
-export default function App() {
+export default function GeneratePage() {
   const [health, setHealth] = useState(null);
   const [balance, setBalance] = useState(null);
   const [imageFile, setImageFile] = useState(null);

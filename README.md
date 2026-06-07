@@ -85,8 +85,9 @@ tripo-image-to-glb-studio/
 │   │   ├── RightPanel.jsx    # Panel phải (Kết quả / Activity log)
 │   │   └── CreditErrorModal.jsx
 │   ├── pages/
-│   │   └── JobsPage.jsx      # Trang /jobs — danh sách và chi tiết job
-│   ├── App.jsx               # State và toàn bộ logic chính
+│   │   ├── GeneratePage.jsx  # Trang Generate — state và logic chính
+│   │   ├── JobsPage.jsx      # Trang /jobs — danh sách và chi tiết job
+│   │   └── PricingPage.jsx   # Trang /pricing — bảng credits
 │   ├── main.jsx              # Entry point, routing đơn giản theo pathname
 │   ├── constants.js          # Danh sách model, FINAL_STATUSES
 │   ├── utils.js              # Hàm tiện ích (wait, outputFromTaskResponse…)
