@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { MODELS } from '../constants.js';
+import IconMask from './IconMask.jsx';
 
 function NumberField({ value, onChange, min, max, step = 1, placeholder, ariaLabel }) {
   const inputRef = useRef(null);
@@ -119,10 +120,7 @@ function SelectField({ value, onChange, options, disabled = false, ariaLabel }) 
 // ─── Multiview icons ───────────────────────────────────────────────
 
 const PERSON_ICON = (
-  <svg width="26" height="30" viewBox="0 0 26 30" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-    <circle cx="13" cy="8" r="6"/>
-    <path d="M1 29c0-6.6 5.4-12 12-12s12 5.4 12 12"/>
-  </svg>
+  <IconMask src="/icons/person.svg" />
 );
 
 const MV_VIEWS = [
@@ -350,7 +348,7 @@ export default function ControlPanel({
             className={`s-mode-tab${mode === 'single' ? ' active' : ''}`}
             onClick={() => setMode('single')}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+            <IconMask src="/icons/image.svg" className="s-mode-tab-icon" />
             1 ảnh
           </button>
           <button
@@ -358,7 +356,7 @@ export default function ControlPanel({
             className={`s-mode-tab${mode === 'multi' ? ' active' : ''}`}
             onClick={() => setMode('multi')}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true"><rect x="2" y="2" width="9" height="9" rx="1.5"/><rect x="13" y="2" width="9" height="9" rx="1.5"/><rect x="2" y="13" width="9" height="9" rx="1.5"/><rect x="13" y="13" width="9" height="9" rx="1.5"/></svg>
+            <IconMask src="/icons/multiview.svg" className="s-mode-tab-icon" />
             4 ảnh
           </button>
         </div>
@@ -386,7 +384,7 @@ export default function ControlPanel({
               </>
             ) : (
               <div className="s-dz-empty">
-                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21,15 16,10 5,21"/></svg>
+                <IconMask src="/icons/image.svg" className="s-dz-empty-icon" />
                 <span>Kéo thả hoặc bấm để chọn</span>
                 <small>PNG · JPG · WEBP · ≤200MB</small>
               </div>
