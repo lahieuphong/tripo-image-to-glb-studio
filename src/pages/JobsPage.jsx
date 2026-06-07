@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react';
+import IconSidebar from '../components/IconSidebar.jsx';
+import TopBar from '../components/TopBar.jsx';
 
 function proxyUrl(url) {
   return url ? `/api/asset?url=${encodeURIComponent(url)}` : '';
@@ -339,65 +341,46 @@ export default function JobsPage() {
   }, [taskId]);
 
   return (
-    <main className="app-shell">
-      <aside className="sidebar">
-        <div className="brand">
-          <div className="brand-mark">3D</div>
-          <div>
-            <p className="eyebrow">AI Image to GLB</p>
-            <h1>GLB Forge Studio</h1>
-          </div>
-        </div>
+    <div className="s-root">
+      <TopBar />
+      <div className="s-body">
+        <IconSidebar />
 
-        <nav className="nav-list" aria-label="Sidebar">
-          <a className="nav-item" href="/">Generate</a>
-          <button className="nav-item" disabled>Assets</button>
-          <a className="nav-item active" href="/jobs">Jobs</a>
-          <a className="nav-item" href="/pricing">Pricing</a>
-          <button className="nav-item" disabled>Settings</button>
-        </nav>
+        <main className="jobs-page">
+          <header className="jobs-page-head">
+            <div>
+              <p className="eyebrow">{taskId ? 'Chi tiết' : 'Lịch sử'}</p>
+              <h2>{taskId ? taskId.slice(0, 18) + '…' : 'Jobs History'}</h2>
+            </div>
+            {taskId && (
+              <a className="ghost-button" href="/jobs">← Danh sách</a>
+            )}
+          </header>
 
-        <section className="side-card">
-          <p className="muted">Powered by</p>
-          <strong>Tripo OpenAPI</strong>
-          <p className="tiny">Lịch sử các model đã generate.</p>
-        </section>
-      </aside>
-
-      <section className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="eyebrow">{taskId ? 'Chi tiết' : 'Lịch sử'}</p>
-            <h2>{taskId ? taskId.slice(0, 18) + '…' : 'Jobs History'}</h2>
-          </div>
-          {taskId && (
-            <a className="ghost-button" href="/jobs">← Danh sách</a>
+          {taskId ? (
+            <JobDetail taskId={taskId} />
+          ) : loading ? (
+            <div className="jobs-loading">Đang tải…</div>
+          ) : jobs.length === 0 ? (
+            <div className="jobs-empty">
+              <div className="orb" />
+              <strong>Chưa có job nào</strong>
+              <p>Generate một model để bắt đầu lưu lịch sử.</p>
+              <a className="primary-button" href="/">Tạo model mới →</a>
+            </div>
+          ) : (
+            <div className="jobs-grid">
+              {jobs.map((j) => (
+                <JobCard
+                  key={j.taskId}
+                  job={j}
+                  onSelect={(id) => { window.location.href = `/jobs?id=${id}`; }}
+                />
+              ))}
+            </div>
           )}
-        </header>
-
-        {taskId ? (
-          <JobDetail taskId={taskId} />
-        ) : loading ? (
-          <div className="jobs-loading">Đang tải…</div>
-        ) : jobs.length === 0 ? (
-          <div className="jobs-empty">
-            <div className="orb" />
-            <strong>Chưa có job nào</strong>
-            <p>Generate một model để bắt đầu lưu lịch sử.</p>
-            <a className="primary-button" href="/">Tạo model mới →</a>
-          </div>
-        ) : (
-          <div className="jobs-grid">
-            {jobs.map((j) => (
-              <JobCard
-                key={j.taskId}
-                job={j}
-                onSelect={(id) => { window.location.href = `/jobs?id=${id}`; }}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-    </main>
+        </main>
+      </div>
+    </div>
   );
 }

@@ -876,6 +876,32 @@ a.nav-item {
 }
 
 /* ─── Jobs page ───────────────────────────────────────────────── */
+.jobs-page {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 28px;
+  color: var(--text-primary);
+  background:
+    radial-gradient(circle at 20% 10%, rgba(124, 92, 255, 0.22), transparent 32rem),
+    radial-gradient(circle at 84% 18%, rgba(124, 92, 255, 0.10), transparent 30rem),
+    linear-gradient(135deg, #080910 0%, #0f1020 55%, #090a12 100%);
+}
+
+.jobs-page-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 22px;
+}
+
+.jobs-page-head h2 {
+  margin: 0;
+  font-size: clamp(24px, 3vw, 36px);
+  letter-spacing: -0.04em;
+}
+
 .jobs-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
