@@ -1549,7 +1549,10 @@ a.nav-item {
 /* center viewer */
 .s-center {
   flex:1; background:radial-gradient(ellipse at center, #1e1e1e 0%, #0f0f0f 100%); min-width:0; position:relative; overflow:hidden;
-  transition: box-shadow 400ms ease;
+  transition: box-shadow 400ms ease, background 380ms ease;
+}
+.s-center-sketch {
+  background: radial-gradient(ellipse at center, #141414 0%, #080808 100%);
 }
 
 /* model-viewer fills wrapper — no filter here so camera never resets on click */

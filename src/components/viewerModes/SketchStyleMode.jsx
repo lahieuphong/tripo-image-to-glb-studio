@@ -18,10 +18,10 @@ const OUTLINE_VERTEX_LIMIT = 1500000;
 const EDGE_VERTEX_LIMIT = 1200000;
 const SKETCH_GRADIENT_MAP = new DataTexture(
   new Uint8Array([
-    174, 174, 168, 255,
-    210, 210, 204, 255,
-    232, 232, 226, 255,
-    250, 250, 246, 255,
+    88,  86,  80,  255,
+    168, 165, 158, 255,
+    220, 218, 210, 255,
+    252, 250, 244, 255,
   ]),
   4,
   1,
@@ -116,8 +116,16 @@ function applySketchShader(material, averageLuma) {
   const averageLumaValue = Number.isFinite(averageLuma) ? averageLuma : 0.82;
   const averageLumaLiteral = averageLumaValue.toFixed(6);
   const averageLumaBucket = Math.round(averageLumaValue * 1000);
-  material.customProgramCacheKey = () => `sketch-style-tripo-v17-${averageLumaBucket}`;
+  material.customProgramCacheKey = () => `sketch-style-tripo-v21-${averageLumaBucket}`;
   material.onBeforeCompile = (shader) => {
+    // Inject object-space position so hatching follows the model surface, not the screen
+    shader.vertexShader = 'varying vec3 skObjectPos;\n' + shader.vertexShader;
+    shader.vertexShader = shader.vertexShader.replace(
+      '#include <begin_vertex>',
+      '#include <begin_vertex>\nskObjectPos = position;'
+    );
+    shader.fragmentShader = 'varying vec3 skObjectPos;\n' + shader.fragmentShader;
+
     if (shader.fragmentShader.includes('#include <color_fragment>')) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <color_fragment>',
@@ -132,11 +140,11 @@ function applySketchShader(material, averageLuma) {
       float skSourceDelta = abs(skSourceLuma - skAvgLuma);
       float skDarkDetail = smoothstep(0.026, 0.230, max(skAvgLuma - skSourceLuma, 0.0));
       float skColorDetail = smoothstep(0.060, 0.260, skSourceRange) * smoothstep(0.012, 0.180, skSourceDelta);
-      vec3 skPaper = vec3(0.955, 0.955, 0.925);
+      vec3 skPaper = vec3(0.978, 0.976, 0.952);
       float skMaterialTone = mix(skAvgLuma, skSourceLuma, 0.66);
-      vec3 skClay = skPaper * mix(0.92, 1.070, smoothstep(0.035, 0.985, skMaterialTone));
-      skClay = mix(skClay, vec3(0.080, 0.076, 0.066), skDarkDetail * 0.460);
-      skClay *= 1.0 - skColorDetail * 0.115;
+      vec3 skClay = skPaper * mix(0.86, 1.095, smoothstep(0.035, 0.985, skMaterialTone));
+      skClay = mix(skClay, vec3(0.055, 0.050, 0.042), skDarkDetail * 0.560);
+      skClay *= 1.0 - skColorDetail * 0.100;
       diffuseColor.rgb = skClay;
       `
       );
@@ -151,7 +159,7 @@ function applySketchShader(material, averageLuma) {
       float skFacing = clamp(abs(dot(skN, skV)), 0.0, 1.0);
       float skSilhouette = pow(1.0 - skFacing, 2.10);
       float skNormalDelta = fwidth(skN.x) + fwidth(skN.y) + fwidth(skN.z);
-      float skCrease = smoothstep(0.022, 0.108, skNormalDelta);
+      float skCrease = smoothstep(0.012, 0.075, skNormalDelta);
       vec3 skKeyDir = normalize(vec3(-0.42, 0.74, 0.52));
       float skNormalShadow = 1.0 - smoothstep(-0.18, 0.74, dot(skN, skKeyDir));
       `
@@ -166,48 +174,49 @@ function applySketchShader(material, averageLuma) {
         `
       ${normalCode}
 
-      float skHash = fract(sin(dot(floor(gl_FragCoord.xy * 0.72), vec2(12.9898, 78.233))) * 43758.5453);
-      vec2 skPx = gl_FragCoord.xy;
+      vec3 skOP = skObjectPos * 260.0;
+      float skHash = fract(sin(dot(floor(skOP.xy * 0.72), vec2(12.9898, 78.233))) * 43758.5453);
 
       vec3 skLit = clamp(outgoingLight, vec3(0.0), vec3(1.45));
       float skLitLuma = dot(skLit, vec3(0.299, 0.587, 0.114));
       float skBaseLuma = max(dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114)), 0.055);
       float skLightTone = smoothstep(0.34, 1.18, clamp(skLitLuma / skBaseLuma, 0.0, 1.55));
       float skValueShadow = 1.0 - smoothstep(0.34, 1.02, skLitLuma);
-      float skShadow = clamp(skNormalShadow * 0.58 + skValueShadow * 0.25 + (1.0 - skLightTone) * 0.18, 0.0, 1.0);
+      float skShadow = clamp(skNormalShadow * 0.66 + skValueShadow * 0.30 + (1.0 - skLightTone) * 0.26, 0.0, 1.0);
 
-      float skH1V = dot(skPx, normalize(vec2(0.74, 1.0))) / 10.5;
+      float skH1V = dot(skOP, normalize(vec3(0.74, 1.0, 0.30))) / 10.5;
       float skH1Dist = abs(fract(skH1V) - 0.5);
-      float skLine1 = 1.0 - smoothstep(0.048, 0.048 + fwidth(skH1V) * 1.8, skH1Dist);
+      float skLine1 = 1.0 - smoothstep(0.068, 0.068 + fwidth(skH1V) * 1.8, skH1Dist);
 
-      float skH2V = dot(skPx, normalize(vec2(-0.82, 1.0))) / 13.5;
+      float skH2V = dot(skOP, normalize(vec3(-0.82, 1.0, 0.30))) / 13.5;
       float skH2Dist = abs(fract(skH2V) - 0.5);
-      float skLine2 = 1.0 - smoothstep(0.042, 0.042 + fwidth(skH2V) * 1.8, skH2Dist);
+      float skLine2 = 1.0 - smoothstep(0.060, 0.060 + fwidth(skH2V) * 1.8, skH2Dist);
 
-      float skH3V = dot(skPx, normalize(vec2(1.0, 0.08))) / 22.0;
+      float skH3V = dot(skOP, normalize(vec3(1.0, 0.08, 0.50))) / 22.0;
       float skH3Dist = abs(fract(skH3V) - 0.5);
-      float skLine3 = 1.0 - smoothstep(0.018, 0.018 + fwidth(skH3V) * 1.5, skH3Dist);
+      float skLine3 = 1.0 - smoothstep(0.026, 0.026 + fwidth(skH3V) * 1.5, skH3Dist);
 
-      float skMild = smoothstep(0.30, 0.70, skShadow);
-      float skMid = smoothstep(0.55, 0.88, skShadow);
-      float skDeep = smoothstep(0.76, 0.99, skShadow);
-      float skLineBreak = smoothstep(0.10, 0.92, skHash);
+      float skMild = smoothstep(0.20, 0.55, skShadow);
+      float skMid = smoothstep(0.44, 0.74, skShadow);
+      float skDeep = smoothstep(0.66, 0.92, skShadow);
+      float skLitSuppression = 1.0 - smoothstep(0.74, 0.97, skLightTone);
+      float skLineBreak = smoothstep(0.08, 0.88, skHash);
       float skHatch = (
-        skLine1 * skMild * 0.220 +
-        skLine2 * skMid * 0.125 +
-        skLine3 * skDeep * 0.040
-      ) * mix(0.55, 1.0, skLineBreak);
+        skLine1 * skMild * 0.480 +
+        skLine2 * skMid * 0.310 +
+        skLine3 * skDeep * 0.120
+      ) * mix(0.40, 1.0, skLineBreak) * skLitSuppression;
 
       float skTextureDelta = fwidth(skBaseLuma);
-      float skTextureEdge = smoothstep(0.004, 0.028, skTextureDelta) * (1.0 - smoothstep(0.078, 0.160, skTextureDelta)) * 0.245;
-      float skEncodedDarkInk = (1.0 - smoothstep(0.56, 0.86, skBaseLuma)) * 0.285;
-      float skCreaseInk = skCrease * 0.680;
-      float skSilhouetteInk = skSilhouette * 0.940;
-      float skInkAmount = clamp(skHatch + skCreaseInk + skSilhouetteInk + skTextureEdge + skEncodedDarkInk, 0.0, 0.94);
+      float skTextureEdge = smoothstep(0.004, 0.016, skTextureDelta) * (1.0 - smoothstep(0.062, 0.138, skTextureDelta)) * 0.370;
+      float skEncodedDarkInk = (1.0 - smoothstep(0.44, 0.76, skBaseLuma)) * 0.360;
+      float skCreaseInk = skCrease * 1.120;
+      float skSilhouetteInk = skSilhouette * 1.160;
+      float skInkAmount = clamp(skHatch + skCreaseInk + skSilhouetteInk + skTextureEdge + skEncodedDarkInk, 0.0, 0.98);
 
-      float skPaperShade = mix(0.52, 1.02, skLightTone);
-      vec3 skPaperColor = vec3(skPaperShade * 1.000, skPaperShade * 0.997, skPaperShade * 0.965);
-      vec3 skInk = vec3(0.018, 0.016, 0.012);
+      float skPaperShade = mix(0.52, 0.90, skLightTone);
+      vec3 skPaperColor = vec3(skPaperShade * 1.000, skPaperShade * 0.994, skPaperShade * 0.954);
+      vec3 skInk = vec3(0.008, 0.006, 0.004);
       outgoingLight = mix(skPaperColor, skInk, skInkAmount);
 
       #include <opaque_fragment>
@@ -253,7 +262,7 @@ function createSketchMaterial(mat) {
 function createOutlineMaterial(mat) {
   const cutout = materialUsesCutout(mat);
   return new MeshBasicMaterial({
-    color: 0x020202,
+    color: 0x000000,
     map: mat.map ?? null,
     alphaMap: mat.alphaMap ?? null,
     alphaTest: Math.max(mat.alphaTest ?? 0, cutout || mat.map || mat.alphaMap ? 0.42 : 0),
@@ -263,17 +272,17 @@ function createOutlineMaterial(mat) {
     depthTest: true,
     depthWrite: true,
     polygonOffset: true,
-    polygonOffsetFactor: 2.8,
-    polygonOffsetUnits: 2.8,
+    polygonOffsetFactor: 3.2,
+    polygonOffsetUnits: 3.2,
   });
 }
 
 function createSketchEdgeLine(node) {
-  const edgeGeometry = new EdgesGeometry(node.geometry, 30);
+  const edgeGeometry = new EdgesGeometry(node.geometry, 22);
   const edgeMaterial = new LineBasicMaterial({
-    color: 0x070707,
+    color: 0xB89020,
     transparent: true,
-    opacity: 0.44,
+    opacity: 0.40,
     depthTest: true,
     depthWrite: false,
   });
@@ -330,7 +339,7 @@ function createSketchStylePreview(mv) {
       outline.name = `${node.name || 'mesh'} Sketch Outline`;
       outline.userData = { ...outline.userData, sketchStylePreview: true };
       outline.material = Array.isArray(original) ? outlineMaterials : outlineMaterials[0];
-      outline.scale.multiplyScalar(1.0095);
+      outline.scale.multiplyScalar(1.018);
       outline.renderOrder = (node.renderOrder ?? 0) - 1;
       outline.raycast = () => null;
       parent.add(outline);
