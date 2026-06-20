@@ -15,7 +15,8 @@ import { $scene } from '@google/model-viewer/lib/model-viewer-base.js';
 import { ensureMaterialSnapshots, restoreMaterial } from './materialState.js';
 
 const OUTLINE_VERTEX_LIMIT = 1500000;
-const EDGE_VERTEX_LIMIT = 1200000;
+const DETAIL_EDGE_VERTEX_LIMIT = 900000;
+const DETAIL_EDGE_RATIO_LIMIT = 0.42;
 const SKETCH_GRADIENT_MAP = new DataTexture(
   new Uint8Array([
     88,  86,  80,  255,
@@ -116,16 +117,8 @@ function applySketchShader(material, averageLuma) {
   const averageLumaValue = Number.isFinite(averageLuma) ? averageLuma : 0.82;
   const averageLumaLiteral = averageLumaValue.toFixed(6);
   const averageLumaBucket = Math.round(averageLumaValue * 1000);
-  material.customProgramCacheKey = () => `sketch-style-tripo-v21-${averageLumaBucket}`;
+  material.customProgramCacheKey = () => `sketch-style-tripo-v30-${averageLumaBucket}`;
   material.onBeforeCompile = (shader) => {
-    // Inject object-space position so hatching follows the model surface, not the screen
-    shader.vertexShader = 'varying vec3 skObjectPos;\n' + shader.vertexShader;
-    shader.vertexShader = shader.vertexShader.replace(
-      '#include <begin_vertex>',
-      '#include <begin_vertex>\nskObjectPos = position;'
-    );
-    shader.fragmentShader = 'varying vec3 skObjectPos;\n' + shader.fragmentShader;
-
     if (shader.fragmentShader.includes('#include <color_fragment>')) {
       shader.fragmentShader = shader.fragmentShader.replace(
         '#include <color_fragment>',
@@ -138,13 +131,13 @@ function applySketchShader(material, averageLuma) {
       float skAvgLuma = clamp(${averageLumaLiteral}, 0.025, 0.975);
       float skSourceRange = skSourceMax - skSourceMin;
       float skSourceDelta = abs(skSourceLuma - skAvgLuma);
-      float skDarkDetail = smoothstep(0.026, 0.230, max(skAvgLuma - skSourceLuma, 0.0));
+      float skDarkDetail = smoothstep(0.055, 0.270, max(skAvgLuma - skSourceLuma, 0.0));
       float skColorDetail = smoothstep(0.060, 0.260, skSourceRange) * smoothstep(0.012, 0.180, skSourceDelta);
-      vec3 skPaper = vec3(0.978, 0.976, 0.952);
-      float skMaterialTone = mix(skAvgLuma, skSourceLuma, 0.66);
-      vec3 skClay = skPaper * mix(0.86, 1.095, smoothstep(0.035, 0.985, skMaterialTone));
-      skClay = mix(skClay, vec3(0.055, 0.050, 0.042), skDarkDetail * 0.560);
-      skClay *= 1.0 - skColorDetail * 0.100;
+      vec3 skPaper = vec3(0.980, 0.978, 0.954);
+      float skMaterialTone = mix(skAvgLuma, skSourceLuma, 0.42);
+      vec3 skClay = skPaper * mix(0.88, 1.085, smoothstep(0.035, 0.985, skMaterialTone));
+      skClay = mix(skClay, vec3(0.065, 0.060, 0.052), skDarkDetail * 0.210);
+      skClay *= 1.0 - skColorDetail * 0.040;
       diffuseColor.rgb = skClay;
       `
       );
@@ -157,9 +150,9 @@ function applySketchShader(material, averageLuma) {
       vec3 skN = normalize(normal);
       vec3 skV = normalize(vViewPosition);
       float skFacing = clamp(abs(dot(skN, skV)), 0.0, 1.0);
-      float skSilhouette = pow(1.0 - skFacing, 2.10);
+      float skSilhouette = pow(1.0 - skFacing, 1.85);
       float skNormalDelta = fwidth(skN.x) + fwidth(skN.y) + fwidth(skN.z);
-      float skCrease = smoothstep(0.012, 0.075, skNormalDelta);
+      float skCrease = smoothstep(0.007, 0.052, skNormalDelta);
       vec3 skKeyDir = normalize(vec3(-0.42, 0.74, 0.52));
       float skNormalShadow = 1.0 - smoothstep(-0.18, 0.74, dot(skN, skKeyDir));
       `
@@ -167,6 +160,7 @@ function applySketchShader(material, averageLuma) {
       float skNormalShadow = 0.42;
       float skSilhouette = 0.0;
       float skCrease = 0.0;
+      float skFacing = 1.0;
       `;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -174,8 +168,8 @@ function applySketchShader(material, averageLuma) {
         `
       ${normalCode}
 
-      vec3 skOP = skObjectPos * 260.0;
-      float skHash = fract(sin(dot(floor(skOP.xy * 0.72), vec2(12.9898, 78.233))) * 43758.5453);
+      vec2 skPx = gl_FragCoord.xy;
+      float skHash = fract(sin(dot(floor(skPx * 0.18), vec2(12.9898, 78.233))) * 43758.5453);
 
       vec3 skLit = clamp(outgoingLight, vec3(0.0), vec3(1.45));
       float skLitLuma = dot(skLit, vec3(0.299, 0.587, 0.114));
@@ -184,40 +178,60 @@ function applySketchShader(material, averageLuma) {
       float skValueShadow = 1.0 - smoothstep(0.34, 1.02, skLitLuma);
       float skShadow = clamp(skNormalShadow * 0.66 + skValueShadow * 0.30 + (1.0 - skLightTone) * 0.26, 0.0, 1.0);
 
-      float skH1V = dot(skOP, normalize(vec3(0.74, 1.0, 0.30))) / 10.5;
+      float skH1V = (skPx.x - skPx.y) / 8.25;
       float skH1Dist = abs(fract(skH1V) - 0.5);
-      float skLine1 = 1.0 - smoothstep(0.068, 0.068 + fwidth(skH1V) * 1.8, skH1Dist);
+      float skLine1 = 1.0 - smoothstep(0.095, 0.095 + fwidth(skH1V) * 1.30, skH1Dist);
 
-      float skH2V = dot(skOP, normalize(vec3(-0.82, 1.0, 0.30))) / 13.5;
+      float skH2V = (skPx.x - skPx.y + 4.0) / 13.75;
       float skH2Dist = abs(fract(skH2V) - 0.5);
-      float skLine2 = 1.0 - smoothstep(0.060, 0.060 + fwidth(skH2V) * 1.8, skH2Dist);
+      float skLine2 = 1.0 - smoothstep(0.060, 0.060 + fwidth(skH2V) * 1.15, skH2Dist);
 
-      float skH3V = dot(skOP, normalize(vec3(1.0, 0.08, 0.50))) / 22.0;
-      float skH3Dist = abs(fract(skH3V) - 0.5);
-      float skLine3 = 1.0 - smoothstep(0.026, 0.026 + fwidth(skH3V) * 1.5, skH3Dist);
-
-      float skMild = smoothstep(0.20, 0.55, skShadow);
-      float skMid = smoothstep(0.44, 0.74, skShadow);
-      float skDeep = smoothstep(0.66, 0.92, skShadow);
-      float skLitSuppression = 1.0 - smoothstep(0.74, 0.97, skLightTone);
-      float skLineBreak = smoothstep(0.08, 0.88, skHash);
+      float skMild = smoothstep(0.44, 0.78, skShadow);
+      float skDeep = smoothstep(0.66, 0.96, skShadow);
+      float skLitSuppression = 1.0 - smoothstep(0.50, 0.82, skLightTone);
+      float skViewEdgeShade = 1.0 - smoothstep(0.36, 0.78, skFacing);
+      float skLineBreak = smoothstep(0.02, 0.48, skHash);
       float skHatch = (
-        skLine1 * skMild * 0.480 +
-        skLine2 * skMid * 0.310 +
-        skLine3 * skDeep * 0.120
-      ) * mix(0.40, 1.0, skLineBreak) * skLitSuppression;
+        skLine1 * skMild * 0.330 +
+        skLine2 * skDeep * 0.150
+      ) * mix(0.74, 1.0, skLineBreak) * skLitSuppression * mix(0.52, 1.0, skViewEdgeShade);
 
-      float skTextureDelta = fwidth(skBaseLuma);
-      float skTextureEdge = smoothstep(0.004, 0.016, skTextureDelta) * (1.0 - smoothstep(0.062, 0.138, skTextureDelta)) * 0.370;
-      float skEncodedDarkInk = (1.0 - smoothstep(0.44, 0.76, skBaseLuma)) * 0.360;
-      float skCreaseInk = skCrease * 1.120;
-      float skSilhouetteInk = skSilhouette * 1.160;
-      float skInkAmount = clamp(skHatch + skCreaseInk + skSilhouetteInk + skTextureEdge + skEncodedDarkInk, 0.0, 0.98);
+      float skSourceColorDelta = fwidth(skSourceColor.r) + fwidth(skSourceColor.g) + fwidth(skSourceColor.b);
+      float skSourceLumaDelta = fwidth(skSourceLuma);
+      float skSourceEdge = skSourceColorDelta + skSourceLumaDelta * 1.35;
+      float skFeatureEdge = smoothstep(0.028, 0.116, skSourceEdge);
+      float skDetailSignal = smoothstep(0.038, 0.172, skSourceDelta);
+      float skStableFeature = skFeatureEdge
+        * skDetailSignal
+        * (1.0 - smoothstep(0.245, 0.470, skSourceEdge));
+      float skTextureEdge = skStableFeature * 0.520;
+      float skEncodedDarkInk = smoothstep(0.070, 0.300, max(skAvgLuma - skSourceLuma, 0.0))
+        * mix(0.28, 1.0, skFeatureEdge)
+        * skDetailSignal
+        * 0.520;
+      float skOriginalDetailInk = smoothstep(0.052, 0.205, skSourceDelta)
+        * smoothstep(0.025, 0.120, skSourceLumaDelta)
+        * mix(0.42, 1.0, skFeatureEdge)
+        * 0.380;
+      float skGoldNoise = fract(sin(dot(floor(skPx * 0.105), vec2(41.23, 17.97))) * 24634.6345);
+      float skGoldBreak = smoothstep(0.12, 0.86, skGoldNoise);
+      float skGoldRim = smoothstep(0.54, 0.92, skSilhouette) * mix(0.62, 1.0, skViewEdgeShade);
+      float skGoldCrease = skCrease * smoothstep(0.44, 0.98, skShadow) * 0.340;
+      float skGoldFeature = skStableFeature
+        * (smoothstep(0.54, 0.96, skShadow) * 0.05 + skViewEdgeShade * 0.08);
+      float skGoldAccent = clamp((skGoldRim * 0.300 + skGoldCrease + skGoldFeature) * mix(0.68, 1.0, skGoldBreak), 0.0, 0.320);
+      float skCreaseInk = skCrease * 1.080;
+      float skSilhouetteInk = skSilhouette * 1.060;
+      float skInkAmount = clamp(skHatch + skCreaseInk + skSilhouetteInk + skTextureEdge + skEncodedDarkInk + skOriginalDetailInk, 0.0, 0.98);
 
-      float skPaperShade = mix(0.52, 0.90, skLightTone);
-      vec3 skPaperColor = vec3(skPaperShade * 1.000, skPaperShade * 0.994, skPaperShade * 0.954);
+      float skFormShade = smoothstep(0.30, 0.92, skShadow);
+      float skPaperShade = mix(0.965, 0.500, skFormShade);
+      skPaperShade = mix(skPaperShade, 0.985, smoothstep(0.70, 0.98, skLightTone) * 0.55);
+      vec3 skPaperColor = vec3(skPaperShade * 1.000, skPaperShade * 0.996, skPaperShade * 0.968);
       vec3 skInk = vec3(0.008, 0.006, 0.004);
-      outgoingLight = mix(skPaperColor, skInk, skInkAmount);
+      vec3 skGold = vec3(1.000, 0.790, 0.025);
+      vec3 skGoldPaperColor = mix(skPaperColor, skGold, skGoldAccent);
+      outgoingLight = mix(skGoldPaperColor, skInk, skInkAmount);
 
       #include <opaque_fragment>
       `
@@ -259,35 +273,43 @@ function createSketchMaterial(mat) {
   return sketch;
 }
 
-function createOutlineMaterial(mat) {
-  const cutout = materialUsesCutout(mat);
+function createOutlineMaterial(mat, color) {
   return new MeshBasicMaterial({
-    color: 0x000000,
-    map: mat.map ?? null,
+    color,
     alphaMap: mat.alphaMap ?? null,
-    alphaTest: Math.max(mat.alphaTest ?? 0, cutout || mat.map || mat.alphaMap ? 0.42 : 0),
+    alphaTest: mat.alphaTest ?? 0,
     transparent: false,
     opacity: 1,
     side: BackSide,
     depthTest: true,
-    depthWrite: true,
+    depthWrite: false,
     polygonOffset: true,
     polygonOffsetFactor: 3.2,
     polygonOffsetUnits: 3.2,
   });
 }
 
-function createSketchEdgeLine(node) {
-  const edgeGeometry = new EdgesGeometry(node.geometry, 22);
+function createSketchDetailLine(node) {
+  const vertexCount = node.geometry?.attributes?.position?.count ?? 0;
+  if (!vertexCount || vertexCount > DETAIL_EDGE_VERTEX_LIMIT) return null;
+
+  const edgeGeometry = new EdgesGeometry(node.geometry, 42);
+  const edgeVertexCount = edgeGeometry.attributes?.position?.count ?? 0;
+  if (!edgeVertexCount || edgeVertexCount > vertexCount * DETAIL_EDGE_RATIO_LIMIT) {
+    edgeGeometry.dispose();
+    return null;
+  }
+
   const edgeMaterial = new LineBasicMaterial({
-    color: 0xB89020,
+    color: 0x050403,
     transparent: true,
-    opacity: 0.40,
+    opacity: 0.54,
     depthTest: true,
     depthWrite: false,
+    toneMapped: false,
   });
   const line = new LineSegments(edgeGeometry, edgeMaterial);
-  line.name = `${node.name || 'mesh'} Sketch Edges`;
+  line.name = `${node.name || 'mesh'} Sketch Detail Edges`;
   line.userData = { ...line.userData, sketchStylePreview: true };
   line.position.copy(node.position);
   line.quaternion.copy(node.quaternion);
@@ -322,36 +344,50 @@ function createSketchStylePreview(mv) {
     const canUseOutline = vertexCount > 0
       && vertexCount <= OUTLINE_VERTEX_LIMIT
       && !likelyAlphaCard;
-    const canUseEdges = vertexCount > 0
-      && vertexCount <= EDGE_VERTEX_LIMIT
-      && !likelyAlphaCard;
-    const outlineMaterials = canUseOutline ? sourceMaterials.map(createOutlineMaterial) : [];
+    const blackOutlineMaterials = canUseOutline
+      ? sourceMaterials.map((mat) => createOutlineMaterial(mat, 0x050403))
+      : [];
+    const goldOutlineMaterials = canUseOutline
+      ? sourceMaterials.map((mat) => createOutlineMaterial(mat, 0xF2D21B))
+      : [];
 
     node.material = Array.isArray(original) ? sketchMaterials : sketchMaterials[0];
-    createdMaterials.push(...sketchMaterials, ...outlineMaterials);
+    createdMaterials.push(...sketchMaterials, ...blackOutlineMaterials, ...goldOutlineMaterials);
     entries.push({ node, original });
 
     const parent = node.parent;
     if (!parent) return;
 
     if (canUseOutline) {
-      const outline = node.clone(false);
-      outline.name = `${node.name || 'mesh'} Sketch Outline`;
-      outline.userData = { ...outline.userData, sketchStylePreview: true };
-      outline.material = Array.isArray(original) ? outlineMaterials : outlineMaterials[0];
-      outline.scale.multiplyScalar(1.018);
-      outline.renderOrder = (node.renderOrder ?? 0) - 1;
-      outline.raycast = () => null;
-      parent.add(outline);
-      extraNodes.push(outline);
+      const blackOutline = node.clone(false);
+      blackOutline.name = `${node.name || 'mesh'} Sketch Black Outline`;
+      blackOutline.userData = { ...blackOutline.userData, sketchStylePreview: true };
+      blackOutline.material = Array.isArray(original) ? blackOutlineMaterials : blackOutlineMaterials[0];
+      blackOutline.scale.multiplyScalar(1.024);
+      blackOutline.renderOrder = (node.renderOrder ?? 0) - 3;
+      blackOutline.raycast = () => null;
+      parent.add(blackOutline);
+      extraNodes.push(blackOutline);
+
+      const goldOutline = node.clone(false);
+      goldOutline.name = `${node.name || 'mesh'} Sketch Gold Outline`;
+      goldOutline.userData = { ...goldOutline.userData, sketchStylePreview: true };
+      goldOutline.material = Array.isArray(original) ? goldOutlineMaterials : goldOutlineMaterials[0];
+      goldOutline.scale.multiplyScalar(1.012);
+      goldOutline.renderOrder = (node.renderOrder ?? 0) - 2;
+      goldOutline.raycast = () => null;
+      parent.add(goldOutline);
+      extraNodes.push(goldOutline);
     }
 
-    if (canUseEdges) {
-      const { line, edgeGeometry, edgeMaterial } = createSketchEdgeLine(node);
-      parent.add(line);
-      extraNodes.push(line);
-      createdGeometries.push(edgeGeometry);
-      createdMaterials.push(edgeMaterial);
+    if (canUseOutline) {
+      const detailEdges = createSketchDetailLine(node);
+      if (detailEdges) {
+        parent.add(detailEdges.line);
+        extraNodes.push(detailEdges.line);
+        createdGeometries.push(detailEdges.edgeGeometry);
+        createdMaterials.push(detailEdges.edgeMaterial);
+      }
     }
   });
 
@@ -372,7 +408,7 @@ export function clearSketchStyleMode(mv, sketchStylePreviewRef) {
     node.parent?.remove(node);
   });
   preview.createdMaterials.forEach((mat) => mat.dispose());
-  preview.createdGeometries.forEach((geometry) => geometry.dispose());
+  preview.createdGeometries?.forEach((geometry) => geometry.dispose());
 
   sketchStylePreviewRef.current = null;
   mv?.[$scene]?.queueRender?.();

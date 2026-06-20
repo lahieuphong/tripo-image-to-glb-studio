@@ -1552,7 +1552,7 @@ a.nav-item {
   transition: box-shadow 400ms ease, background 380ms ease;
 }
 .s-center-sketch {
-  background: radial-gradient(ellipse at center, #141414 0%, #080808 100%);
+  background: radial-gradient(ellipse at center, #404040 0%, #282828 100%);
 }
 
 /* model-viewer fills wrapper — no filter here so camera never resets on click */
