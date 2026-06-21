@@ -15,8 +15,9 @@ import { $scene } from '@google/model-viewer/lib/model-viewer-base.js';
 import { ensureMaterialSnapshots, restoreMaterial } from './materialState.js';
 
 const OUTLINE_VERTEX_LIMIT = 1500000;
-const DETAIL_EDGE_VERTEX_LIMIT = 900000;
-const DETAIL_EDGE_RATIO_LIMIT = 0.42;
+const DETAIL_EDGE_VERTEX_LIMIT = 1500000;
+const DETAIL_EDGE_RATIO_LIMIT = 0.045;
+const DETAIL_EDGE_THRESHOLDS = [88];
 const SKETCH_GRADIENT_MAP = new DataTexture(
   new Uint8Array([
     88,  86,  80,  255,
@@ -117,7 +118,7 @@ function applySketchShader(material, averageLuma) {
   const averageLumaValue = Number.isFinite(averageLuma) ? averageLuma : 0.82;
   const averageLumaLiteral = averageLumaValue.toFixed(6);
   const averageLumaBucket = Math.round(averageLumaValue * 1000);
-  material.customProgramCacheKey = () => `sketch-style-tripo-v30-${averageLumaBucket}`;
+  material.customProgramCacheKey = () => `sketch-style-tripo-v45-${averageLumaBucket}`;
   material.onBeforeCompile = (shader) => {
     if (shader.fragmentShader.includes('#include <color_fragment>')) {
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -152,15 +153,19 @@ function applySketchShader(material, averageLuma) {
       float skFacing = clamp(abs(dot(skN, skV)), 0.0, 1.0);
       float skSilhouette = pow(1.0 - skFacing, 1.85);
       float skNormalDelta = fwidth(skN.x) + fwidth(skN.y) + fwidth(skN.z);
-      float skCrease = smoothstep(0.007, 0.052, skNormalDelta);
+      float skCrease = smoothstep(0.018, 0.090, skNormalDelta);
       vec3 skKeyDir = normalize(vec3(-0.42, 0.74, 0.52));
       float skNormalShadow = 1.0 - smoothstep(-0.18, 0.74, dot(skN, skKeyDir));
+      float skRightShade = smoothstep(-0.22, 0.55, skN.x);
+      float skScreenRightShade = smoothstep(-0.16, 0.16, skV.x);
       `
         : `
       float skNormalShadow = 0.42;
       float skSilhouette = 0.0;
       float skCrease = 0.0;
       float skFacing = 1.0;
+      float skRightShade = 0.42;
+      float skScreenRightShade = 0.42;
       `;
 
       shader.fragmentShader = shader.fragmentShader.replace(
@@ -191,42 +196,56 @@ function applySketchShader(material, averageLuma) {
       float skLitSuppression = 1.0 - smoothstep(0.50, 0.82, skLightTone);
       float skViewEdgeShade = 1.0 - smoothstep(0.36, 0.78, skFacing);
       float skLineBreak = smoothstep(0.02, 0.48, skHash);
+      float skShadowSide = clamp(skNormalShadow * 0.58 + skRightShade * 0.46 + skViewEdgeShade * 0.16, 0.0, 1.0);
+      float skHatchSideMask = smoothstep(0.34, 0.78, skShadowSide)
+        * mix(0.18, 1.0, skScreenRightShade)
+        * (1.0 - smoothstep(0.76, 0.98, skLightTone) * 0.72);
       float skHatch = (
-        skLine1 * skMild * 0.330 +
-        skLine2 * skDeep * 0.150
-      ) * mix(0.74, 1.0, skLineBreak) * skLitSuppression * mix(0.52, 1.0, skViewEdgeShade);
+        skLine1 * skMild * 0.360 +
+        skLine2 * skDeep * 0.170
+      ) * mix(0.74, 1.0, skLineBreak) * skLitSuppression * skHatchSideMask;
 
       float skSourceColorDelta = fwidth(skSourceColor.r) + fwidth(skSourceColor.g) + fwidth(skSourceColor.b);
       float skSourceLumaDelta = fwidth(skSourceLuma);
       float skSourceEdge = skSourceColorDelta + skSourceLumaDelta * 1.35;
-      float skFeatureEdge = smoothstep(0.028, 0.116, skSourceEdge);
-      float skDetailSignal = smoothstep(0.038, 0.172, skSourceDelta);
-      float skStableFeature = skFeatureEdge
-        * skDetailSignal
-        * (1.0 - smoothstep(0.245, 0.470, skSourceEdge));
-      float skTextureEdge = skStableFeature * 0.520;
-      float skEncodedDarkInk = smoothstep(0.070, 0.300, max(skAvgLuma - skSourceLuma, 0.0))
-        * mix(0.28, 1.0, skFeatureEdge)
-        * skDetailSignal
-        * 0.520;
-      float skOriginalDetailInk = smoothstep(0.052, 0.205, skSourceDelta)
-        * smoothstep(0.025, 0.120, skSourceLumaDelta)
-        * mix(0.42, 1.0, skFeatureEdge)
-        * 0.380;
+      float skDarkTone = smoothstep(0.028, 0.205, max(skAvgLuma - skSourceLuma, 0.0));
+      float skAbsoluteDarkTone = 1.0 - smoothstep(0.44, 0.88, skSourceLuma);
+      float skChromaTone = smoothstep(0.075, 0.300, skSourceRange)
+        * (1.0 - smoothstep(0.78, 0.98, skSourceLuma));
+      float skSmoothTone = 1.0 - smoothstep(0.018, 0.072, skSourceEdge);
+      float skTonalHatch = skDarkTone
+        * skSmoothTone
+        * smoothstep(0.16, 0.86, skShadow + skViewEdgeShade * 0.34)
+        * skHatchSideMask
+        * (skLine1 * 0.210 + skLine2 * 0.082);
+      float skMaterialToneInk = max(max(skDarkTone * 0.70, skChromaTone * 0.76), skAbsoluteDarkTone * 0.68);
+      float skMaterialHatch = skMaterialToneInk
+        * smoothstep(0.20, 0.82, skShadow + skRightShade * 0.30 + skViewEdgeShade * 0.18)
+        * skHatchSideMask
+        * (skLine1 * 0.430 + skLine2 * 0.135);
+      float skDirectionalHatch = skMaterialToneInk
+        * skScreenRightShade
+        * smoothstep(0.08, 0.74, skShadow + skViewEdgeShade * 0.22)
+        * (skLine1 * 0.280 + skLine2 * 0.085);
+      float skTextureDetail = smoothstep(0.040, 0.130, skSourceEdge)
+        * smoothstep(0.055, 0.210, max(skSourceDelta, skSourceRange * 0.62))
+        * (1.0 - smoothstep(0.160, 0.340, skSourceEdge));
+      float skTextureEdge = skTextureDetail * mix(0.20, 1.0, skHatchSideMask) * (skLine1 * 0.145 + skLine2 * 0.045);
+      float skEncodedDarkInk = skTextureDetail * skAbsoluteDarkTone * mix(0.28, 1.0, skHatchSideMask) * 0.085;
+      float skOriginalDetailInk = skTextureDetail * mix(0.18, 1.0, skHatchSideMask) * 0.060;
       float skGoldNoise = fract(sin(dot(floor(skPx * 0.105), vec2(41.23, 17.97))) * 24634.6345);
       float skGoldBreak = smoothstep(0.12, 0.86, skGoldNoise);
       float skGoldRim = smoothstep(0.54, 0.92, skSilhouette) * mix(0.62, 1.0, skViewEdgeShade);
       float skGoldCrease = skCrease * smoothstep(0.44, 0.98, skShadow) * 0.340;
-      float skGoldFeature = skStableFeature
-        * (smoothstep(0.54, 0.96, skShadow) * 0.05 + skViewEdgeShade * 0.08);
-      float skGoldAccent = clamp((skGoldRim * 0.300 + skGoldCrease + skGoldFeature) * mix(0.68, 1.0, skGoldBreak), 0.0, 0.320);
-      float skCreaseInk = skCrease * 1.080;
+      float skGoldAccent = clamp((skGoldRim * 0.300 + skGoldCrease) * mix(0.68, 1.0, skGoldBreak), 0.0, 0.320);
+      float skCreaseInk = skCrease * 0.840;
       float skSilhouetteInk = skSilhouette * 1.060;
-      float skInkAmount = clamp(skHatch + skCreaseInk + skSilhouetteInk + skTextureEdge + skEncodedDarkInk + skOriginalDetailInk, 0.0, 0.98);
+      float skInkAmount = clamp(skHatch + skTonalHatch + skMaterialHatch + skDirectionalHatch + skCreaseInk + skSilhouetteInk + skTextureEdge + skEncodedDarkInk + skOriginalDetailInk, 0.0, 0.98);
 
       float skFormShade = smoothstep(0.30, 0.92, skShadow);
       float skPaperShade = mix(0.965, 0.500, skFormShade);
       skPaperShade = mix(skPaperShade, 0.985, smoothstep(0.70, 0.98, skLightTone) * 0.55);
+      skPaperShade *= 1.0 - skChromaTone * 0.100 - skDarkTone * 0.072 - skAbsoluteDarkTone * 0.135;
       vec3 skPaperColor = vec3(skPaperShade * 1.000, skPaperShade * 0.996, skPaperShade * 0.968);
       vec3 skInk = vec3(0.008, 0.006, 0.004);
       vec3 skGold = vec3(1.000, 0.790, 0.025);
@@ -249,13 +268,13 @@ function createSketchMaterial(mat) {
     aoMap: mat.aoMap ?? null,
     aoMapIntensity: mat.aoMapIntensity ?? 1,
     bumpMap: mat.bumpMap ?? null,
-    bumpScale: mat.bumpScale ?? 1,
+    bumpScale: (mat.bumpScale ?? 1) * 0.18,
     displacementMap: mat.displacementMap ?? null,
     displacementScale: mat.displacementScale ?? 1,
     displacementBias: mat.displacementBias ?? 0,
     alphaMap: mat.alphaMap ?? null,
     normalMap: mat.normalMap ?? null,
-    normalScale: mat.normalScale?.clone?.(),
+    normalScale: mat.normalScale?.clone?.().multiplyScalar(0.28),
     transparent: mat.transparent,
     opacity: mat.opacity,
     alphaTest: mat.alphaTest,
@@ -293,17 +312,23 @@ function createSketchDetailLine(node) {
   const vertexCount = node.geometry?.attributes?.position?.count ?? 0;
   if (!vertexCount || vertexCount > DETAIL_EDGE_VERTEX_LIMIT) return null;
 
-  const edgeGeometry = new EdgesGeometry(node.geometry, 42);
-  const edgeVertexCount = edgeGeometry.attributes?.position?.count ?? 0;
-  if (!edgeVertexCount || edgeVertexCount > vertexCount * DETAIL_EDGE_RATIO_LIMIT) {
-    edgeGeometry.dispose();
-    return null;
+  let edgeGeometry = null;
+  for (const threshold of DETAIL_EDGE_THRESHOLDS) {
+    const candidate = new EdgesGeometry(node.geometry, threshold);
+    const edgeVertexCount = candidate.attributes?.position?.count ?? 0;
+    const edgeRatio = edgeVertexCount / vertexCount;
+    if (edgeVertexCount && edgeRatio <= DETAIL_EDGE_RATIO_LIMIT) {
+      edgeGeometry = candidate;
+      break;
+    }
+    candidate.dispose();
   }
+  if (!edgeGeometry) return null;
 
   const edgeMaterial = new LineBasicMaterial({
     color: 0x050403,
     transparent: true,
-    opacity: 0.54,
+    opacity: 0.62,
     depthTest: true,
     depthWrite: false,
     toneMapped: false,
